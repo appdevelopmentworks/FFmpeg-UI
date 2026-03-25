@@ -48,7 +48,9 @@
     "commandPreview": "コマンドプレビュー",
     "estimatedSize": "推定出力サイズ",
     "startConversion": "変換開始",
-    "outputFilename": "ファイル名"
+    "outputFilename": "ファイル名",
+    "twoPass": "2パスエンコード",
+    "hwAutoDetect": "自動検出"
   },
   "trim": {
     "start": "開始",
@@ -128,7 +130,26 @@
     "templates": "テンプレート",
     "history": "コマンド履歴",
     "outputLog": "実行ログ",
-    "reuse": "再利用"
+    "reuse": "再利用",
+    "running": "実行中...",
+    "builtinTemplates": "ビルトインテンプレート",
+    "userTemplates": "ユーザーテンプレート",
+    "clearHistory": "履歴クリア",
+    "historyEmpty": "履歴なし"
+  },
+  "presets": {
+    "title": "プリセット",
+    "builtin": "ビルトイン",
+    "user": "ユーザー",
+    "web": "Web",
+    "social": "SNS",
+    "archive": "アーカイブ",
+    "audio": "音声",
+    "custom": "カスタム",
+    "apply": "適用",
+    "delete": "削除",
+    "save": "保存",
+    "noUserPresets": "ユーザープリセットなし"
   },
   "jobs": {
     "queue": "ジョブキュー",

@@ -49,6 +49,7 @@ pub struct Resolution {
 pub struct FilterSpec {
     pub id: String,
     pub name: String,
+    pub category: Option<String>,   // "video" | "audio"
     pub params: HashMap<String, String>,
     pub enabled: bool,
     pub order: u32,

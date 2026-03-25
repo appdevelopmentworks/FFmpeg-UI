@@ -32,6 +32,15 @@ pub fn run() {
             commands::ffmpeg::generate_waveform,
             commands::ffmpeg::trim_media,
             commands::ffmpeg::extract_streams,
+            commands::ffmpeg::execute_ffmpeg,
+            commands::ffmpeg::execute_raw_command,
+            commands::ffmpeg::build_command_preview,
+            commands::ffmpeg::detect_hw_encoders,
+            commands::ffmpeg::estimate_output_size,
+            // Presets
+            commands::presets::get_presets,
+            commands::presets::save_preset,
+            commands::presets::delete_preset,
             // Jobs
             commands::jobs::get_jobs,
             commands::jobs::cancel_job,

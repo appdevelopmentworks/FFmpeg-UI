@@ -398,7 +398,7 @@ fn format_time(seconds: f64) -> String {
 // ── 共通: FFmpeg with progress ────────────────────────────────────────────────
 
 /// FFmpeg を実行して進捗を job:progress:{job_id} イベントで通知する
-async fn run_ffmpeg_job(
+pub async fn run_ffmpeg_job_pub(
     app: tauri::AppHandle,
     job_id: String,
     args: Vec<String>,
@@ -501,7 +501,7 @@ pub async fn trim_media(
 
     args.push(output_path.clone());
 
-    run_ffmpeg_job(app, job_id, args, duration, output_path, cancel_rx).await
+    run_ffmpeg_job_pub(app, job_id, args, duration, output_path, cancel_rx).await
 }
 
 // ── extract_streams ───────────────────────────────────────────────────────────
@@ -565,5 +565,221 @@ pub async fn extract_streams(
     }
 
     let first_output = output_paths.first().cloned().unwrap_or(output_dir.clone());
-    run_ffmpeg_job(app, job_id, args, total_duration, first_output, cancel_rx).await
+    run_ffmpeg_job_pub(app, job_id, args, total_duration, first_output, cancel_rx).await
+}
+
+// ── build_command ─────────────────────────────────────────────────────────────
+
+/// FFmpegCommandからコマンド引数配列を生成する
+pub fn build_command(cmd: &crate::models::ffmpeg::FFmpegCommand) -> Vec<String> {
+    let mut args = vec!["-y".to_string()];
+
+    // Fast-seek trim (before input)
+    if let Some(ref trim) = cmd.trim {
+        if !trim.accurate {
+            args.push("-ss".to_string());
+            args.push(format_time(trim.start));
+        }
+    }
+
+    // Input
+    args.push("-i".to_string());
+    args.push(cmd.input_path.clone());
+
+    // Accurate trim (after input)
+    if let Some(ref trim) = cmd.trim {
+        if trim.accurate {
+            args.push("-ss".to_string());
+            args.push(format_time(trim.start));
+            let dur = (trim.end - trim.start).max(0.001);
+            args.push("-t".to_string());
+            args.push(format_time(dur));
+        }
+    }
+
+    // ── Video ────────────────────────────────────────────────────────────
+    if cmd.no_video {
+        args.push("-vn".to_string());
+    } else if cmd.copy_video {
+        args.push("-c:v".to_string());
+        args.push("copy".to_string());
+    } else if let Some(ref codec) = cmd.video_codec {
+        args.push("-c:v".to_string());
+        args.push(codec.clone());
+
+        if let Some(crf) = cmd.crf {
+            args.push("-crf".to_string());
+            args.push(crf.to_string());
+        }
+        if let Some(ref vb) = cmd.video_bitrate {
+            args.push("-b:v".to_string());
+            args.push(vb.clone());
+        }
+        if let Some(ref preset) = cmd.preset {
+            args.push("-preset".to_string());
+            args.push(preset.clone());
+        }
+    }
+
+    // Video filters (scale + enabled video filters)
+    let mut vf_parts: Vec<String> = Vec::new();
+    if let Some(ref res) = cmd.resolution {
+        vf_parts.push(format!("scale={}:{}", res.width, res.height));
+    }
+    for f in cmd.filters.iter().filter(|f| {
+        f.enabled && f.category.as_deref() == Some("video")
+    }) {
+        let params_str = f.params.iter()
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join(":");
+        if params_str.is_empty() {
+            vf_parts.push(f.name.clone());
+        } else {
+            vf_parts.push(format!("{}={}", f.name, params_str));
+        }
+    }
+    if !vf_parts.is_empty() {
+        args.push("-vf".to_string());
+        args.push(vf_parts.join(","));
+    }
+
+    // FPS
+    if let Some(fps) = cmd.fps {
+        args.push("-r".to_string());
+        args.push(fps.to_string());
+    }
+
+    // ── Audio ────────────────────────────────────────────────────────────
+    if cmd.no_audio {
+        args.push("-an".to_string());
+    } else if cmd.copy_audio {
+        args.push("-c:a".to_string());
+        args.push("copy".to_string());
+    } else if let Some(ref codec) = cmd.audio_codec {
+        args.push("-c:a".to_string());
+        args.push(codec.clone());
+
+        if let Some(ref ab) = cmd.audio_bitrate {
+            args.push("-b:a".to_string());
+            args.push(ab.clone());
+        }
+    }
+
+    // Audio filters
+    let af_parts: Vec<String> = cmd.filters.iter()
+        .filter(|f| f.enabled && f.category.as_deref() == Some("audio"))
+        .map(|f| {
+            let params_str = f.params.iter()
+                .map(|(k, v)| format!("{k}={v}"))
+                .collect::<Vec<_>>()
+                .join(":");
+            if params_str.is_empty() {
+                f.name.clone()
+            } else {
+                format!("{}={}", f.name, params_str)
+            }
+        })
+        .collect();
+    if !af_parts.is_empty() {
+        args.push("-af".to_string());
+        args.push(af_parts.join(","));
+    }
+
+    // Extra args
+    args.extend(cmd.extra_args.clone());
+
+    // Output
+    args.push(cmd.output_path.clone());
+
+    args
+}
+
+// ── detect_hw_encoders ───────────────────────────────────────────────────────
+
+/// FFmpegの`-encoders`出力からHWエンコーダーを検出する
+pub async fn detect_hw_encoders() -> AppResult<Vec<crate::models::ffmpeg::HWEncoder>> {
+    let bin = ffmpeg_bin()?;
+
+    let output = crate::services::process_manager::run_command(
+        &bin,
+        &["-encoders", "-v", "quiet"],
+    )
+    .await?;
+
+    let mut encoders = Vec::new();
+
+    for line in output.stdout.lines() {
+        let line = line.trim();
+        if line.len() < 10 { continue; }
+        // Format: " V..... h264_nvenc           NVIDIA NVENC H.264 encoder"
+        let (_, rest) = line.split_at(7.min(line.len()));
+        let mut parts = rest.split_whitespace();
+        let name = match parts.next() { Some(s) => s.to_string(), None => continue };
+        let description = parts.collect::<Vec<_>>().join(" ");
+
+        let is_hw = name.contains("nvenc")
+            || name.contains("qsv")
+            || name.contains("videotoolbox")
+            || name.contains("amf")
+            || name.contains("vaapi");
+
+        if !is_hw { continue; }
+
+        let codec = if name.starts_with("h264") { "h264".to_string() }
+            else if name.starts_with("hevc") { "hevc".to_string() }
+            else if name.starts_with("av1")  { "av1".to_string() }
+            else if name.starts_with("vp9")  { "vp9".to_string() }
+            else { name.split('_').next().unwrap_or("").to_string() };
+
+        let device = if name.contains("nvenc") { "NVIDIA NVENC".to_string() }
+            else if name.contains("qsv")         { "Intel Quick Sync".to_string() }
+            else if name.contains("videotoolbox") { "Apple VideoToolbox".to_string() }
+            else if name.contains("amf")          { "AMD AMF".to_string() }
+            else if name.contains("vaapi")        { "VA-API".to_string() }
+            else { description.clone() };
+
+        encoders.push(crate::models::ffmpeg::HWEncoder {
+            name,
+            codec,
+            device,
+            available: true,
+        });
+    }
+
+    Ok(encoders)
+}
+
+// ── estimate_output_size ─────────────────────────────────────────────────────
+
+/// 出力ファイルサイズを推定する（バイト）
+pub fn estimate_output_size(
+    duration: f64,
+    video_bitrate: Option<u64>,
+    audio_bitrate: Option<u64>,
+    crf: Option<u32>,
+    codec: Option<&str>,
+) -> u64 {
+    let effective_video_bps = video_bitrate.unwrap_or_else(|| {
+        if let Some(crf_val) = crf {
+            let base = match codec.unwrap_or("libx264") {
+                c if c.contains("265") || c.contains("hevc") => 1000u64,
+                c if c.contains("vp9") || c.contains("vpx")  => 900u64,
+                c if c.contains("av1") || c.contains("aom")  => 600u64,
+                _ => 2000u64,
+            };
+            let multiplier = 2.0f64.powf((23.0 - crf_val as f64) / 6.0);
+            (base as f64 * multiplier) as u64 * 1000
+        } else {
+            0
+        }
+    });
+
+    let effective_audio_bps = audio_bitrate.unwrap_or(192_000);
+    let total_bps = effective_video_bps + effective_audio_bps;
+    if total_bps == 0 || duration <= 0.0 {
+        return 0;
+    }
+
+    (total_bps as f64 * duration / 8.0) as u64
 }

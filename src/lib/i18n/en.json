@@ -48,7 +48,9 @@
     "commandPreview": "Command Preview",
     "estimatedSize": "Estimated Output Size",
     "startConversion": "Start Conversion",
-    "outputFilename": "Filename"
+    "outputFilename": "Filename",
+    "twoPass": "Two-Pass Encoding",
+    "hwAutoDetect": "Auto Detect"
   },
   "trim": {
     "start": "Start",
@@ -128,7 +130,26 @@
     "templates": "Templates",
     "history": "Command History",
     "outputLog": "Output Log",
-    "reuse": "Reuse"
+    "reuse": "Reuse",
+    "running": "Running...",
+    "builtinTemplates": "Built-in Templates",
+    "userTemplates": "User Templates",
+    "clearHistory": "Clear History",
+    "historyEmpty": "No history"
+  },
+  "presets": {
+    "title": "Presets",
+    "builtin": "Built-in",
+    "user": "User",
+    "web": "Web",
+    "social": "Social",
+    "archive": "Archive",
+    "audio": "Audio",
+    "custom": "Custom",
+    "apply": "Apply",
+    "delete": "Delete",
+    "save": "Save",
+    "noUserPresets": "No user presets"
   },
   "jobs": {
     "queue": "Job Queue",
