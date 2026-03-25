@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub output_dir: String,
     pub duplicate_action: DuplicateAction,
@@ -56,7 +57,9 @@ pub enum Locale {
     En,
 }
 
+// camelCase シリアライズでTypeScript型と一致させる
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BinaryStatus {
     pub ffmpeg_installed: bool,
     pub ffmpeg_version: Option<String>,
@@ -67,6 +70,7 @@ pub struct BinaryStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateInfo {
     pub ffmpeg_update_available: bool,
     pub ffmpeg_latest_version: Option<String>,
@@ -75,6 +79,7 @@ pub struct UpdateInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SystemInfo {
     pub os: String,
     pub arch: String,

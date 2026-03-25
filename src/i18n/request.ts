@@ -8,6 +8,7 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
+    timeZone: 'Asia/Tokyo',
     messages: (await import(`@/lib/i18n/${locale}.json`)).default,
   };
 });

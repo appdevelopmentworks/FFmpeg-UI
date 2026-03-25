@@ -144,7 +144,9 @@
     "resume": "再開",
     "cancelAll": "全キャンセル",
     "openFolder": "処理済みフォルダを開く",
-    "clearCompleted": "完了済みをクリア"
+    "clearCompleted": "完了済みをクリア",
+    "noJobs": "ジョブなし",
+    "active": "実行中"
   },
   "settings": {
     "general": "一般",

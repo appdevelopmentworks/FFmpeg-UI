@@ -1,25 +1,75 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Job, JobProgress } from '@/types/job';
-import { cancelJob, pauseJob, resumeJob, reorderJobs } from '@/lib/tauri/commands';
+import type { Job, JobProgress, JobType, JobStatus } from '@/types/job';
+import {
+  cancelJob as cancelJobCmd,
+  pauseJob as pauseJobCmd,
+  resumeJob as resumeJobCmd,
+  reorderJobs as reorderJobsCmd,
+  clearCompletedJobs,
+  getJobs,
+} from '@/lib/tauri/commands';
+import { onQueueUpdated } from '@/lib/tauri/events';
+
+// ── 型 ───────────────────────────────────────────────────────────────────────
+
+// Rust の JobEntry (進捗なし) を Job にマップ
+interface RawJobEntry {
+  id: string;
+  jobType: JobType;
+  status: JobStatus;
+  inputPath: string;
+  outputPath: string;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+  error?: string;
+}
+
+function mapEntry(e: RawJobEntry, existing?: Job): Job {
+  return {
+    id: e.id,
+    jobType: e.jobType,
+    status: e.status,
+    inputPath: e.inputPath,
+    outputPath: e.outputPath,
+    createdAt: e.createdAt,
+    startedAt: e.startedAt,
+    completedAt: e.completedAt,
+    error: e.error,
+    // 既存の進捗を保持する (イベントで更新済みの場合)
+    progress: existing?.progress,
+  };
+}
+
+function countActive(jobs: Job[]): number {
+  return jobs.filter((j) => j.status === 'running' || j.status === 'pending').length;
+}
+
+// ── ストア ───────────────────────────────────────────────────────────────────
 
 interface JobStore {
   jobs: Job[];
   activeJobCount: number;
 
-  // Mutations
+  // ローカル変異
   addJob: (job: Job) => void;
   updateJobProgress: (id: string, progress: JobProgress) => void;
   updateJobStatus: (id: string, updates: Partial<Job>) => void;
   removeJob: (id: string) => void;
-  setJobs: (jobs: Job[]) => void;
+  /** Rust イベントから受け取ったジョブ一覧で上書き (進捗は保持) */
+  setJobs: (jobs: RawJobEntry[]) => void;
 
-  // Async operations
+  // 非同期操作
   cancelJob: (id: string) => Promise<void>;
   pauseJob: (id: string) => Promise<void>;
   resumeJob: (id: string) => Promise<void>;
   reorderJobs: (ids: string[]) => Promise<void>;
+  clearCompleted: () => Promise<void>;
+
+  /** `job:queue-updated` イベントとポーリングを開始し、解除関数を返す */
+  initListeners: () => Promise<() => void>;
 }
 
 export const useJobStore = create<JobStore>((set, get) => ({
@@ -29,12 +79,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
   addJob: (job) => {
     set((state) => {
       const jobs = [...state.jobs, job];
-      return {
-        jobs,
-        activeJobCount: jobs.filter(
-          (j) => j.status === 'running' || j.status === 'pending',
-        ).length,
-      };
+      return { jobs, activeJobCount: countActive(jobs) };
     });
   },
 
@@ -46,42 +91,29 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
   updateJobStatus: (id, updates) => {
     set((state) => {
-      const jobs = state.jobs.map((j) =>
-        j.id === id ? { ...j, ...updates } : j,
-      );
-      return {
-        jobs,
-        activeJobCount: jobs.filter(
-          (j) => j.status === 'running' || j.status === 'pending',
-        ).length,
-      };
+      const jobs = state.jobs.map((j) => (j.id === id ? { ...j, ...updates } : j));
+      return { jobs, activeJobCount: countActive(jobs) };
     });
   },
 
   removeJob: (id) => {
     set((state) => {
       const jobs = state.jobs.filter((j) => j.id !== id);
-      return {
-        jobs,
-        activeJobCount: jobs.filter(
-          (j) => j.status === 'running' || j.status === 'pending',
-        ).length,
-      };
+      return { jobs, activeJobCount: countActive(jobs) };
     });
   },
 
-  setJobs: (jobs) => {
-    set({
-      jobs,
-      activeJobCount: jobs.filter(
-        (j) => j.status === 'running' || j.status === 'pending',
-      ).length,
+  setJobs: (rawJobs) => {
+    set((state) => {
+      const progressMap = new Map(state.jobs.map((j) => [j.id, j.progress]));
+      const jobs = rawJobs.map((e) => mapEntry(e, { ...e, progress: progressMap.get(e.id) } as Job));
+      return { jobs, activeJobCount: countActive(jobs) };
     });
   },
 
   cancelJob: async (id) => {
     try {
-      await cancelJob(id);
+      await cancelJobCmd(id);
       get().updateJobStatus(id, { status: 'cancelled' });
     } catch (error) {
       console.error('Failed to cancel job:', error);
@@ -90,7 +122,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
   pauseJob: async (id) => {
     try {
-      await pauseJob(id);
+      await pauseJobCmd(id);
       get().updateJobStatus(id, { status: 'paused' });
     } catch (error) {
       console.error('Failed to pause job:', error);
@@ -99,7 +131,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
   resumeJob: async (id) => {
     try {
-      await resumeJob(id);
+      await resumeJobCmd(id);
       get().updateJobStatus(id, { status: 'running' });
     } catch (error) {
       console.error('Failed to resume job:', error);
@@ -108,7 +140,7 @@ export const useJobStore = create<JobStore>((set, get) => ({
 
   reorderJobs: async (ids) => {
     try {
-      await reorderJobs(ids);
+      await reorderJobsCmd(ids);
       const currentJobs = get().jobs;
       const reordered = ids
         .map((id) => currentJobs.find((j) => j.id === id))
@@ -118,5 +150,36 @@ export const useJobStore = create<JobStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to reorder jobs:', error);
     }
+  },
+
+  clearCompleted: async () => {
+    try {
+      await clearCompletedJobs();
+      set((state) => {
+        const jobs = state.jobs.filter(
+          (j) => j.status !== 'completed' && j.status !== 'failed' && j.status !== 'cancelled',
+        );
+        return { jobs, activeJobCount: countActive(jobs) };
+      });
+    } catch (error) {
+      console.error('Failed to clear completed jobs:', error);
+    }
+  },
+
+  initListeners: async () => {
+    // 初回ロード
+    try {
+      const initial = await getJobs();
+      get().setJobs(initial as unknown as RawJobEntry[]);
+    } catch {
+      // Tauri 未接続 (開発環境など) では無視
+    }
+
+    // リアルタイム更新
+    const unlisten = await onQueueUpdated((jobs) => {
+      get().setJobs(jobs as unknown as RawJobEntry[]);
+    });
+
+    return unlisten;
   },
 }));

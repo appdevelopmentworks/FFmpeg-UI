@@ -2,6 +2,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct JobProgress {
+    pub percent: f64,
+    pub frame: u64,
+    pub fps: f64,
+    pub bitrate: String,
+    pub total_size: u64,
+    pub current_time: f64,
+    pub speed: String,
+    pub eta: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct FFmpegCommand {
     pub input_path: String,
     pub output_path: String,
@@ -56,6 +70,7 @@ pub struct HWEncoder {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct StreamExtraction {
     pub stream_index: u32,
     pub output_format: String,
@@ -64,6 +79,7 @@ pub struct StreamExtraction {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct TrimSegment {
     pub start: f64,
     pub end: f64,

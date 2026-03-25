@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct VideoInfo {
     pub id: String,
     pub title: String,
@@ -25,6 +26,7 @@ pub struct Thumbnail {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DownloadFormat {
     pub format_id: String,
     pub format_note: String,
@@ -49,6 +51,7 @@ pub struct SubtitleInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct DownloadProgress {
     pub percent: f64,
     pub downloaded_bytes: u64,

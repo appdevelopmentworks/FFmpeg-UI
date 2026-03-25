@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct MediaInfo {
     pub path: String,
     pub filename: String,
@@ -13,6 +14,7 @@ pub struct MediaInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct FormatInfo {
     pub name: String,
     pub long_name: String,
@@ -20,6 +22,7 @@ pub struct FormatInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct StreamInfo {
     pub index: u32,
     pub stream_type: StreamType,
@@ -48,6 +51,7 @@ pub enum StreamType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct WaveformData {
     pub samples: Vec<f32>,
     pub duration: f64,

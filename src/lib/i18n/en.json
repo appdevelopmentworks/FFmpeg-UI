@@ -144,7 +144,9 @@
     "resume": "Resume",
     "cancelAll": "Cancel All",
     "openFolder": "Open Output Folder",
-    "clearCompleted": "Clear Completed"
+    "clearCompleted": "Clear Completed",
+    "noJobs": "No jobs",
+    "active": "active"
   },
   "settings": {
     "general": "General",

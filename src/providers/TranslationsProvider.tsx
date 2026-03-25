@@ -26,14 +26,14 @@ export function TranslationsProvider({ children }: TranslationsProviderProps) {
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <NextIntlClientProvider locale="ja" messages={messages.ja}>
+      <NextIntlClientProvider locale="ja" messages={messages.ja} timeZone="Asia/Tokyo">
         {children}
       </NextIntlClientProvider>
     );
   }
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages[locale]}>
+    <NextIntlClientProvider locale={locale} messages={messages[locale]} timeZone="Asia/Tokyo">
       {children}
     </NextIntlClientProvider>
   );
