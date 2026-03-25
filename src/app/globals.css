@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+/* ── Dark mode via class ────────────────────────────────────────────────── */
+@custom-variant dark (&:is(.dark *));
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans: "Inter", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  /* Animation */
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+}
+
+/* ── CSS Variables (Dark mode default) ──────────────────────────────────── */
+:root {
+  /* Background */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a25;
+
+  /* Text */
+  --text-primary: #e8e8ed;
+  --text-secondary: #8888a0;
+  --text-tertiary: #55556a;
+
+  /* Accent */
+  --accent-cyan: #06d6a0;
+  --accent-cyan-dim: rgba(6, 214, 160, 0.15);
+  --accent-blue: #4895ef;
+
+  /* Border */
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+
+  /* Status */
+  --status-success: #06d6a0;
+  --status-warning: #ffd166;
+  --status-error: #ef476f;
+  --status-info: #4895ef;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Light mode overrides ───────────────────────────────────────────────── */
+:root.light,
+.light {
+  --bg-primary: #f8f8fc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0f0f8;
+
+  --text-primary: #0a0a0f;
+  --text-secondary: #55556a;
+  --text-tertiary: #8888a0;
+
+  --accent-cyan: #059669;
+  --accent-cyan-dim: rgba(5, 150, 105, 0.1);
+  --accent-blue: #2563eb;
+
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Base styles ────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  overflow: hidden; /* Tauri app, no scroll on body */
+  user-select: none; /* Prevent text selection in app UI */
+}
+
+/* Allow text selection in inputs and content areas */
+input,
+textarea,
+[data-selectable] {
+  user-select: text;
+}
+
+/* ── Scrollbar styling ──────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* ── Focus styles ───────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* ── Utility classes using CSS variables ────────────────────────────────── */
+.bg-app-primary { background-color: var(--bg-primary); }
+.bg-app-secondary { background-color: var(--bg-secondary); }
+.bg-app-tertiary { background-color: var(--bg-tertiary); }
+
+.text-app-primary { color: var(--text-primary); }
+.text-app-secondary { color: var(--text-secondary); }
+.text-app-tertiary { color: var(--text-tertiary); }
+
+.border-app { border-color: var(--border-default); }
+.border-app-hover { border-color: var(--border-hover); }
+
+.accent-cyan { color: var(--accent-cyan); }
+.accent-blue { color: var(--accent-blue); }
