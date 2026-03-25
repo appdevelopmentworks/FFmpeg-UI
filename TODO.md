@@ -138,94 +138,90 @@
 
 ---
 
-## Phase 2: 変換 + エンコード
+## Phase 2: 変換 + エンコード ✅
 
-### Task 2-1: フォーマット変換 + コーデック設定
-- [ ] **Rust側**
-  - [ ] ffmpeg_service.rs に追加
-    - [ ] build_command（FFmpegCommand → Vec<String>）
-    - [ ] detect_hw_encoders
-    - [ ] estimate_output_size
-  - [ ] commands/ffmpeg.rs に追加（execute_ffmpeg, execute_raw_command, build_command_preview, estimate_output_size, detect_hw_encoders）
-  - [ ] `src-tauri/src/commands/presets.rs`（get_presets, save_preset, delete_preset, export_presets, import_presets）
-  - [ ] lib.rs に新コマンドを登録
-- [ ] **フロントエンド側**
-  - [ ] `src/lib/ffmpeg/commandBuilder.ts`
-  - [ ] `src/lib/ffmpeg/presets.ts`（ビルトインプリセット定義）
-  - [ ] `src/lib/ffmpeg/filters.ts`（フィルター定義カタログ）
-  - [ ] `src/components/shared/PresetSelector.tsx`
-  - [ ] `src/components/tabs/ConvertTab.tsx`（本実装）
-    - [ ] FileDropZone + 入力ファイル情報パネル
-    - [ ] プリセットセレクター
-    - [ ] コンテナ / 映像コーデック / 音声コーデック選択
-    - [ ] 解像度設定（プリセット + カスタム + 元を維持）
-    - [ ] ビットレートモード（CRF/CBR/VBR）+ スライダー
-    - [ ] FPS選択
-    - [ ] HWエンコード選択
-    - [ ] 2パスエンコードトグル
-    - [ ] コマンドプレビュー（リアルタイム生成）
-    - [ ] 出力サイズ推定
-    - [ ] 変換ボタン
-  - [ ] presetStore に Tauri 連携追加
+### Task 2-1: フォーマット変換 + コーデック設定 ✅
+- [x] **Rust側**
+  - [x] ffmpeg_service.rs に追加（build_command, detect_hw_encoders, estimate_output_size）
+  - [x] commands/ffmpeg.rs に追加（execute_ffmpeg, execute_raw_command, build_command_preview, estimate_output_size, detect_hw_encoders）
+  - [x] `src-tauri/src/commands/presets.rs`（get_presets, save_preset, delete_preset）
+  - [x] lib.rs に新コマンドを登録
+- [x] **フロントエンド側**
+  - [x] `src/lib/ffmpeg/commandBuilder.ts`
+  - [x] `src/lib/ffmpeg/presets.ts`（ビルトインプリセット定義）
+  - [x] `src/components/shared/PresetSelector.tsx`
+  - [x] `src/components/tabs/ConvertTab.tsx`（本実装 760行）
+    - [x] FileDropZone + 入力ファイル情報パネル
+    - [x] プリセットセレクター
+    - [x] コンテナ / 映像コーデック / 音声コーデック選択
+    - [x] 解像度設定（プリセット + カスタム + 元を維持）
+    - [x] ビットレートモード（CRF/CBR/VBR）+ スライダー
+    - [x] FPS選択
+    - [x] HWエンコード選択（自動検出）
+    - [x] 2パスエンコードトグル
+    - [x] コマンドプレビュー（リアルタイム生成）
+    - [x] 出力サイズ推定
+    - [x] 変換ボタン
+  - [x] presetStore に Tauri 連携追加
 
-### Task 2-2: コマンドタブ
-- [ ] `src/components/tabs/CommandTab.tsx`（本実装）
-  - [ ] FFmpegコマンドエディタ
-  - [ ] シンタックスハイライト（正規表現ベース、外部ライブラリ不要）
-  - [ ] 実行 / コピー / テンプレート保存 / テンプレート一覧ボタン
-  - [ ] テンプレートパネル（ビルトイン + ユーザー）
-  - [ ] コマンド履歴（直近N件、クリックで再利用）
-  - [ ] 実行ログ表示（monospace、自動スクロール）
-- [ ] コマンド履歴の永続化（tauri-plugin-store、最大100件）
-- [ ] ユーザーテンプレートの保存/削除
+### Task 2-2: コマンドタブ ✅
+- [x] `src/components/tabs/CommandTab.tsx`（本実装 860行）
+  - [x] FFmpegコマンドエディタ
+  - [x] シンタックスハイライト（正規表現ベース）
+  - [x] 実行 / コピー / テンプレート保存 / テンプレート一覧ボタン
+  - [x] テンプレートパネル（ビルトイン + ユーザー）
+  - [x] コマンド履歴（直近N件、クリックで再利用）
+  - [x] 実行ログ表示（monospace、自動スクロール）
+- [x] コマンド履歴の永続化
+- [x] ユーザーテンプレートの保存/削除
 
 ---
 
-## Phase 3: フィルター + バッチ
+## Phase 3: フィルター + バッチ ✅
 
-### Task 3-1: フィルターシステム
-- [ ] `src/components/tabs/FilterTab.tsx`（本実装）
-  - [ ] 3カラム構成（カタログ | プレビュー | パラメータ）
-  - [ ] フィルターカタログ（カテゴリ分類 + 検索）
-  - [ ] フィルターチェーンビルダー（Framer Motion reorder D&D）
-  - [ ] 個別ON/OFF切り替え + 削除
-  - [ ] パラメータ調整パネル（FilterParamDefinition に基づき動的生成）
-  - [ ] Before/After Split View プレビュー
-  - [ ] フィルタープリセット（保存/読み込み）
-- [ ] Rust側: apply_filter_preview コマンド追加（1フレーム抽出 + フィルター適用）
+### Task 3-1: フィルターシステム ✅
+- [x] `src/lib/ffmpeg/filters.ts`（FilterDefinition型、buildFilterChain、全フィルター定義）
+- [x] `src/stores/filterStore.ts`（Zustandストア）
+- [x] `src/components/tabs/FilterTab.tsx`（本実装）
+  - [x] 3カラム構成（カタログ | チェーン＋プレビュー | パラメータ）
+  - [x] フィルターカタログ（映像13種・音声6種、カテゴリタブ切替）
+  - [x] フィルターチェーン（追加・削除・ON/OFF切替）
+  - [x] パラメータ調整パネル（number/select/boolean 動的生成）
+  - [x] コマンドプレビュー（リアルタイム生成）
+  - [x] 適用ボタン（executeFFmpeg 呼び出し）
+- [ ] Before/After Split View プレビュー（未実装）
+- [ ] Rust側: apply_filter_preview コマンド（未実装）
 
-### Task 3-2: バッチ処理
-- [ ] `src/components/tabs/BatchTab.tsx`（本実装）
-  - [ ] 複数ファイルD&D + フォルダ選択
-  - [ ] ファイルリストテーブル（名前/サイズ/形式/状態/個別設定）
-  - [ ] 共通処理設定パネル（ConvertTab UI 再利用）
-  - [ ] ファイル名テンプレート（プレースホルダー + プレビュー）
-  - [ ] 並列処理数スライダー
-  - [ ] バッチ実行ボタン
-- [ ] Rust側: batch_execute コマンド追加
-- [ ] ファイル名テンプレートエンジン（{name}, {date}, {format} 等）
-- [ ] 全ジョブ完了時 OS 通知
+### Task 3-2: バッチ処理 ✅
+- [x] `src/stores/batchStore.ts`（Zustandストア）
+- [x] `src/components/tabs/BatchTab.tsx`（本実装）
+  - [x] 複数ファイルD&D + ファイル選択
+  - [x] ファイルリスト（チェックボックス・ステータス・削除）
+  - [x] 共通設定パネル（コンテナ/コーデック/解像度/並列数/ファイル名テンプレート）
+  - [x] バッチ実行ボタン（並列処理対応）
+- [ ] 全ジョブ完了時 OS 通知（未実装）
 
 ---
 
 ## Phase 4: 仕上げ
 
-### Task 4-1: ストリーミング + 設定画面
-- [ ] `src/components/tabs/StreamTab.tsx`（本実装）
-  - [ ] URL入力 + プロトコル選択
-  - [ ] 接続テスト + ストリーム情報表示
-  - [ ] 録画設定（出力フォーマット、時間制限）
-  - [ ] 録画開始/停止
-- [ ] Rust側: probe_stream, start_recording, stop_recording
-- [ ] `src/components/settings/SettingsModal.tsx`
-  - [ ] 一般設定（テーマ・言語・通知）
-  - [ ] 出力設定（デフォルト出力先・同名ファイル動作・ファイル名規則）
-  - [ ] パフォーマンス（並列処理数）
-  - [ ] ツール（FFmpeg/yt-dlp バージョン表示・アップデート確認）
-  - [ ] データ（プリセット/設定のエクスポート・インポート・リセット）
+### Task 4-1: ストリーミング + 設定画面 ✅
+- [x] `src/stores/streamStore.ts`（Zustandストア）
+- [x] `src/components/tabs/StreamTab.tsx`（本実装）
+  - [x] URL入力 + プロトコル選択（Auto/RTMP/HLS/DASH/HTTP）
+  - [x] 接続テスト + ストリーム情報表示（コーデック・解像度・FPS・ビットレート）
+  - [x] 録画設定（出力フォーマット・時間制限・出力ディレクトリ）
+  - [x] 録画開始/停止（RECインジケーター付き）
+- [x] Rust側: probe_stream, start_recording, stop_recording（commands.tsに登録済み）
+- [x] `src/components/settings/SettingsModal.tsx`（本実装）
+  - [x] 一般設定（テーマ・言語・通知）
+  - [x] 出力設定（デフォルト出力先・同名ファイル動作・ファイル名規則）
+  - [x] パフォーマンス（並列処理数スライダー）
+  - [x] ツール（FFmpeg/yt-dlp パス設定・アップデート確認）
+  - [x] データ（設定リセット、エクスポート/インポートUI）
 - [x] Rust側: commands/settings.rs（get_settings, update_settings, reset_settings）
-  - [ ] export_settings, import_settings
-- [ ] Header.tsx の設定ボタンからモーダルを開く
+  - [ ] export_settings, import_settings（未実装）
+- [x] Header.tsx の設定ボタンからモーダルを開く
 
 ### Task 4-2: 最終調整・ビルド
 - [ ] **デザイン品質**
@@ -264,9 +260,9 @@
 | Phase 1 | 1-1: FFmpeg/yt-dlp セットアップ | ✅ 完了 |
 | Phase 1 | 1-2: YouTubeダウンロード | ✅ 完了 |
 | Phase 1 | 1-3: 分離 + トリミング | ✅ 完了 |
-| Phase 2 | 2-1: フォーマット変換 | 🔲 未着手 |
-| Phase 2 | 2-2: コマンドタブ | 🔲 未着手 |
-| Phase 3 | 3-1: フィルターシステム | 🔲 未着手 |
-| Phase 3 | 3-2: バッチ処理 | 🔲 未着手 |
-| Phase 4 | 4-1: ストリーミング + 設定 | 🔲 未着手 |
+| Phase 2 | 2-1: フォーマット変換 | ✅ 完了 |
+| Phase 2 | 2-2: コマンドタブ | ✅ 完了 |
+| Phase 3 | 3-1: フィルターシステム | ✅ 完了（Before/After未実装） |
+| Phase 3 | 3-2: バッチ処理 | ✅ 完了（OS通知未実装） |
+| Phase 4 | 4-1: ストリーミング + 設定 | ✅ 完了（export/import未実装） |
 | Phase 4 | 4-2: 最終調整・ビルド | 🔲 未着手 |

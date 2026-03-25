@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Moon, Sun, Settings, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { SettingsModal } from '@/components/settings/SettingsModal';
 import type { ThemeMode, AppLocale } from '@/types/settings';
 
 const LANGUAGES: { value: AppLocale; label: string }[] = [
@@ -17,6 +19,7 @@ export function Header() {
   const locale = useSettingsStore((s) => s.locale);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setLocale = useSettingsStore((s) => s.setLocale);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const isDark = theme === 'dark';
 
@@ -123,6 +126,7 @@ export function Header() {
 
         {/* Settings Button */}
         <motion.button
+          onClick={() => setSettingsOpen(true)}
           className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           whileHover={{
@@ -135,6 +139,8 @@ export function Header() {
           <Settings className="h-4 w-4" />
         </motion.button>
       </div>
+
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </header>
   );
 }
