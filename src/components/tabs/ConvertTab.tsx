@@ -342,26 +342,26 @@ export function ConvertTab() {
                 style={{ backgroundColor: 'var(--bg-tertiary)' }}
               >
                 <div>
-                  <span style={{ color: 'var(--text-tertiary)' }}>コンテナ: </span>
+                  <span style={{ color: 'var(--text-tertiary)' }}>{t('container')}: </span>
                   <span style={{ color: 'var(--text-primary)' }}>
                     {state.inputInfo.format.name.toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-tertiary)' }}>サイズ: </span>
+                  <span style={{ color: 'var(--text-tertiary)' }}>{tc('size')}: </span>
                   <span style={{ color: 'var(--text-primary)' }}>
                     {formatFileSize(state.inputInfo.size)}
                   </span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-tertiary)' }}>再生時間: </span>
+                  <span style={{ color: 'var(--text-tertiary)' }}>{t('infoDuration')}: </span>
                   <span style={{ color: 'var(--text-primary)' }}>
                     {formatDuration(state.inputInfo.duration)}
                   </span>
                 </div>
                 {videoStream && (
                   <div className="col-span-2">
-                    <span style={{ color: 'var(--text-tertiary)' }}>映像: </span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{t('infoVideo')}: </span>
                     <span style={{ color: 'var(--text-primary)' }}>
                       {videoStream.codecName.toUpperCase()}{' '}
                       {videoStream.width && videoStream.height
@@ -373,7 +373,7 @@ export function ConvertTab() {
                 )}
                 {audioStream && (
                   <div className="col-span-1">
-                    <span style={{ color: 'var(--text-tertiary)' }}>音声: </span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{t('infoAudio')}: </span>
                     <span style={{ color: 'var(--text-primary)' }}>
                       {audioStream.codecName.toUpperCase()}
                     </span>
@@ -568,7 +568,7 @@ export function ConvertTab() {
                   value={state.crfValue}
                   onChange={(e) => update('crfValue', parseInt(e.target.value))}
                   label="CRF"
-                  valueLabel={`${state.crfValue} (${state.crfValue < 18 ? '高品質' : state.crfValue < 28 ? '標準' : '低品質'})`}
+                  valueLabel={`${state.crfValue} (${state.crfValue < 18 ? t('crfHigh') : state.crfValue < 28 ? t('crfMid') : t('crfLow')})`}
                 />
               ) : (
                 <input

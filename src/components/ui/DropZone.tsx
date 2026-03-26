@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FolderOpen } from 'lucide-react';
 
@@ -25,6 +26,7 @@ export function DropZone({
   className = '',
   disabled = false,
 }: DropZoneProps) {
+  const tc = useTranslations('common');
   const [dragging, setDragging] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -94,7 +96,7 @@ export function DropZone({
           >
             <FolderOpen size={28} style={{ color: 'var(--accent-cyan)' }} />
             <span className="text-sm font-medium" style={{ color: 'var(--accent-cyan)' }}>
-              ドロップしてファイルを追加
+              {tc('dropHere')}
             </span>
           </motion.div>
         ) : (
@@ -114,10 +116,10 @@ export function DropZone({
             </div>
             <div className="flex flex-col items-center gap-0.5 text-center px-4">
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                {label ?? 'ファイルをドラッグ&ドロップ'}
+                {label ?? tc('dragOrClick')}
               </span>
               <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                {sublabel ?? (accept ? `対応形式: ${accept.join(', ')}` : 'または クリックして選択')}
+                {sublabel ?? (accept ? accept.join(', ') : tc('dragOrClick'))}
               </span>
             </div>
           </motion.div>

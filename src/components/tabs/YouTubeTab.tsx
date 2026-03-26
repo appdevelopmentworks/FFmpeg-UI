@@ -374,7 +374,7 @@ export function YouTubeTab() {
                     style={{ color: 'var(--text-tertiary)' }}
                   >
                     {descExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                    {descExpanded ? '説明を閉じる' : '説明を表示'}
+                    {descExpanded ? t('hideDesc') : t('showDesc')}
                   </button>
                   <AnimatePresence>
                     {descExpanded && (
@@ -413,7 +413,7 @@ export function YouTubeTab() {
             <div className="flex flex-col gap-1.5">
               {filteredFormats.length === 0 ? (
                 <p className="py-4 text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                  このモードで利用可能なフォーマットがありません
+                  {t('noFormats')}
                 </p>
               ) : (
                 filteredFormats.map((fmt) => (
@@ -484,7 +484,7 @@ export function YouTubeTab() {
                   <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--accent-cyan)' }} />
                 )}
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {isComplete ? 'ダウンロード完了' : hasError ? download.error ?? 'エラー' : download.progress?.status === 'merging' ? 'マージ中...' : download.progress?.status === 'post-processing' ? '後処理中...' : 'ダウンロード中...'}
+                  {isComplete ? t('downloadComplete') : hasError ? download.error ?? tc('error') : download.progress?.status === 'merging' ? t('merging') : download.progress?.status === 'post-processing' ? t('postProcessing') : t('downloading')}
                 </span>
               </div>
 
@@ -508,7 +508,7 @@ export function YouTubeTab() {
               <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                 <span>{download.progress.percent.toFixed(1)}%</span>
                 {download.progress.speed && <span>{download.progress.speed}</span>}
-                {download.progress.eta && <span>残り {download.progress.eta}</span>}
+                {download.progress.eta && <span>{tc('remaining')} {download.progress.eta}</span>}
               </div>
             )}
 

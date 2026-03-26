@@ -27,13 +27,7 @@ const PROTOCOLS: { value: StreamProtocol; label: string }[] = [
 
 const OUTPUT_FORMATS = ['mp4', 'mkv', 'ts', 'flv', 'mov'];
 
-const DURATION_PRESETS = [
-  { label: '—', value: 0 },
-  { label: '30分', value: 1800 },
-  { label: '1時間', value: 3600 },
-  { label: '2時間', value: 7200 },
-  { label: '6時間', value: 21600 },
-];
+const DURATION_PRESET_VALUES = [0, 1800, 3600, 7200, 21600];
 
 function formatBitrate(bps?: number): string {
   if (!bps) return '—';
@@ -274,7 +268,7 @@ export function StreamTab() {
                 { label: 'Video', value: streamInfo.videoCodec ?? '—' },
                 { label: 'Audio', value: streamInfo.audioCodec ?? '—' },
                 {
-                  label: '解像度',
+                  label: t('resolution'),
                   value: streamInfo.width && streamInfo.height
                     ? `${streamInfo.width}×${streamInfo.height}`
                     : '—',
@@ -378,11 +372,19 @@ export function StreamTab() {
                       border: '0.5px solid var(--border-default)',
                     }}
                   >
-                    {DURATION_PRESETS.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.value === 0 ? t('noLimit') : p.label}
-                      </option>
-                    ))}
+                    {DURATION_PRESET_VALUES.map((v) => {
+                      let label: string;
+                      if (v === 0) {
+                        label = t('noLimit');
+                      } else if (v < 3600) {
+                        label = `${v / 60}${t('min')}`;
+                      } else {
+                        label = `${v / 3600}${t('hour')}`;
+                      }
+                      return (
+                        <option key={v} value={v}>{label}</option>
+                      );
+                    })}
                   </select>
                 </div>
 

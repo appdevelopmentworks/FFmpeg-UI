@@ -372,7 +372,7 @@ export function SettingsModal({ open, onClose }: Props) {
                         type="text"
                         value={store.ffmpegPath ?? ''}
                         onChange={(e) => store.update({ ffmpegPath: e.target.value || undefined })}
-                        placeholder="(自動検出)"
+                        placeholder={t('autoDetect')}
                         className="w-full rounded-lg px-2.5 py-2 text-xs font-mono outline-none"
                         style={{
                           backgroundColor: 'var(--bg-secondary)',
@@ -391,7 +391,7 @@ export function SettingsModal({ open, onClose }: Props) {
                         type="text"
                         value={store.ytdlpPath ?? ''}
                         onChange={(e) => store.update({ ytdlpPath: e.target.value || undefined })}
-                        placeholder="(自動検出)"
+                        placeholder={t('autoDetect')}
                         className="w-full rounded-lg px-2.5 py-2 text-xs font-mono outline-none"
                         style={{
                           backgroundColor: 'var(--bg-secondary)',

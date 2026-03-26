@@ -318,7 +318,7 @@ export function CommandTab() {
           setOutputLog((prev) => [
             ...prev,
             ``,
-            `✓ 完了: ${e.payload.outputPath}`,
+            `✓ ${t('logComplete')}: ${e.payload.outputPath}`,
           ]);
           setIsRunning(false);
           updateHistoryStatus(jobId, 'success');
@@ -334,7 +334,7 @@ export function CommandTab() {
           setOutputLog((prev) => [
             ...prev,
             ``,
-            `✗ エラー: ${e.payload.message}`,
+            `✗ ${t('logError')}: ${e.payload.message}`,
             ...(e.payload.stderr ? e.payload.stderr.split('\n').slice(-5) : []),
           ]);
           setIsRunning(false);
@@ -351,7 +351,7 @@ export function CommandTab() {
         unlistenError();
       };
     } catch (e) {
-      setOutputLog((prev) => [...prev, `✗ エラー: ${e instanceof Error ? e.message : String(e)}`]);
+      setOutputLog((prev) => [...prev, `✗ ${t('logError')}: ${e instanceof Error ? e.message : String(e)}`]);
       setIsRunning(false);
     }
   }, [command, isRunning, history]);
@@ -533,7 +533,7 @@ export function CommandTab() {
                     color: 'var(--text-primary)',
                     border: '0.5px solid var(--border-default)',
                   }}
-                  placeholder="テンプレート名..."
+                  placeholder={t('templateNamePlaceholder')}
                   value={saveTemplateName}
                   onChange={(e) => setSaveTemplateName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSaveTemplate()}
@@ -650,7 +650,7 @@ export function CommandTab() {
               {displayedTemplates.length === 0 ? (
                 <div className="flex items-center justify-center py-6">
                   <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    テンプレートなし
+                    {t('noTemplates')}
                   </span>
                 </div>
               ) : (

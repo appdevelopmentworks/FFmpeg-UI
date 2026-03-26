@@ -27,7 +27,14 @@
     "duration": "再生時間",
     "uploadDate": "投稿日",
     "viewCount": "再生数",
-    "outputDir": "出力先"
+    "outputDir": "出力先",
+    "showDesc": "説明を表示",
+    "hideDesc": "説明を閉じる",
+    "noFormats": "このモードで利用可能なフォーマットがありません",
+    "downloadComplete": "ダウンロード完了",
+    "downloading": "ダウンロード中...",
+    "merging": "マージ中...",
+    "postProcessing": "後処理中..."
   },
   "convert": {
     "dropzone": "ファイルをドラッグ&ドロップ または クリックして選択",
@@ -50,7 +57,13 @@
     "startConversion": "変換開始",
     "outputFilename": "ファイル名",
     "twoPass": "2パスエンコード",
-    "hwAutoDetect": "自動検出"
+    "hwAutoDetect": "自動検出",
+    "infoDuration": "再生時間",
+    "infoVideo": "映像",
+    "infoAudio": "音声",
+    "crfHigh": "高品質",
+    "crfMid": "標準",
+    "crfLow": "低品質"
   },
   "trim": {
     "start": "開始",
@@ -60,7 +73,11 @@
     "accurateCut": "精密カット (再エンコードあり)",
     "execute": "カット実行",
     "preview": "プレビュー再生",
-    "addSegment": "セグメント追加"
+    "addSegment": "セグメント追加",
+    "cutMode": "カットモード",
+    "complete": "カット完了",
+    "running": "カット中...",
+    "outputPath": "出力先"
   },
   "extract": {
     "streams": "ストリーム一覧",
@@ -73,7 +90,10 @@
     "bitrate": "ビットレート",
     "sampleRate": "サンプルレート",
     "channels": "チャンネル",
-    "language": "言語"
+    "language": "言語",
+    "complete": "抽出完了",
+    "running": "抽出中...",
+    "dropzone": "ファイルをドラッグ&ドロップ または クリックして選択"
   },
   "filter": {
     "catalog": "フィルターカタログ",
@@ -126,7 +146,10 @@
     "noLimit": "制限なし",
     "startRecording": "録画開始",
     "stopRecording": "停止",
-    "protocol": "プロトコル"
+    "protocol": "プロトコル",
+    "min": "分",
+    "hour": "時間",
+    "resolution": "解像度"
   },
   "command": {
     "editor": "FFmpeg コマンドエディタ",
@@ -141,7 +164,11 @@
     "builtinTemplates": "ビルトインテンプレート",
     "userTemplates": "ユーザーテンプレート",
     "clearHistory": "履歴クリア",
-    "historyEmpty": "履歴なし"
+    "historyEmpty": "履歴なし",
+    "templateNamePlaceholder": "テンプレート名...",
+    "noTemplates": "テンプレートなし",
+    "logComplete": "完了",
+    "logError": "エラー"
   },
   "presets": {
     "title": "プリセット",
@@ -205,7 +232,8 @@
     "import": "インポート",
     "reset": "リセット",
     "save": "保存",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "autoDetect": "(自動検出)"
   },
   "setup": {
     "title": "セットアップ",
@@ -215,7 +243,12 @@
     "skip": "スキップ",
     "retry": "リトライ",
     "checksumVerifying": "チェックサム検証中...",
-    "githubNote": "GitHub からダウンロードしています"
+    "githubNote": "GitHub からダウンロードしています",
+    "waiting": "待機中",
+    "retryBtn": "再試行",
+    "sha256Note": "SHA256 チェックサム検証を行います",
+    "completeMsg": "セットアップ完了 — まもなく閉じます",
+    "errorMsg": "エラーが発生しました。再試行してください。"
   },
   "common": {
     "outputDir": "出力先",
@@ -232,6 +265,10 @@
     "size": "サイズ",
     "format": "形式",
     "status": "状態",
-    "operations": "操作"
+    "operations": "操作",
+    "dropHere": "ドロップしてファイルを追加",
+    "dragOrClick": "ファイルをドラッグ&ドロップ または クリックして選択",
+    "mediaFilter": "メディア",
+    "remaining": "残り"
   }
 }

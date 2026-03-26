@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, AlertCircle, RefreshCw, Zap, X } from 'lucide-react';
 
@@ -19,6 +20,7 @@ interface ToolRowProps {
 }
 
 function ToolRow({ name, status, onRetry }: ToolRowProps) {
+  const t = useTranslations('setup');
   const { phase, progress, version, error } = status;
 
   const isComplete   = phase === 'complete';
@@ -70,17 +72,17 @@ function ToolRow({ name, status, onRetry }: ToolRowProps) {
         <div className="flex items-center gap-2">
           {isComplete && (
             <span className="text-xs" style={{ color: 'var(--status-success)' }}>
-              完了
+              {t('complete')}
             </span>
           )}
           {isIdle && (
             <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-              待機中
+              {t('waiting')}
             </span>
           )}
           {isError && (
             <Button variant="ghost" size="sm" icon={<RefreshCw size={12} />} onClick={onRetry}>
-              再試行
+              {t('retryBtn')}
             </Button>
           )}
         </div>
@@ -142,6 +144,7 @@ function ToolRow({ name, status, onRetry }: ToolRowProps) {
 // ── メインダイアログ ──────────────────────────────────────────────────────────
 
 export function SetupDialog() {
+  const t = useTranslations('setup');
   const { phase, ffmpegStatus, ytdlpStatus, checkAndSetup, retry, skip } = useSetup();
 
   // マウント時にバイナリチェックを開始
@@ -200,10 +203,10 @@ export function SetupDialog() {
                   </div>
                   <div>
                     <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      FFmpeg-UI セットアップ
+                      FFmpeg-UI {t('title')}
                     </h2>
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      必要なツールをダウンロードしています
+                      {t('description')}
                     </p>
                   </div>
                 </div>
@@ -225,10 +228,10 @@ export function SetupDialog() {
                 {/* Notes */}
                 <div className="flex flex-col gap-1 pt-1">
                   <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    ※ GitHub からダウンロードしています
+                    ※ {t('githubNote')}
                   </p>
                   <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    ※ SHA256 チェックサム検証を行います
+                    ※ {t('sha256Note')}
                   </p>
                 </div>
               </div>
@@ -245,15 +248,15 @@ export function SetupDialog() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    セットアップ完了 — まもなく閉じます
+                    {t('completeMsg')}
                   </motion.p>
                 ) : hasError ? (
                   <p className="text-xs" style={{ color: 'var(--status-warning)' }}>
-                    エラーが発生しました。再試行してください。
+                    {t('errorMsg')}
                   </p>
                 ) : (
                   <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                    ダウンロード中…
+                    {t('downloading')}
                   </p>
                 )}
 
@@ -264,7 +267,7 @@ export function SetupDialog() {
                   onClick={skip}
                   style={{ marginLeft: 'auto' }}
                 >
-                  スキップ
+                  {t('skip')}
                 </Button>
               </div>
             </motion.div>

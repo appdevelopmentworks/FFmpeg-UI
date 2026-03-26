@@ -27,7 +27,14 @@
     "duration": "Duration",
     "uploadDate": "Upload Date",
     "viewCount": "View Count",
-    "outputDir": "Output Directory"
+    "outputDir": "Output Directory",
+    "showDesc": "Show description",
+    "hideDesc": "Hide description",
+    "noFormats": "No formats available for this mode",
+    "downloadComplete": "Download complete",
+    "downloading": "Downloading...",
+    "merging": "Merging...",
+    "postProcessing": "Post-processing..."
   },
   "convert": {
     "dropzone": "Drag & Drop file here or Click to select",
@@ -50,7 +57,13 @@
     "startConversion": "Start Conversion",
     "outputFilename": "Filename",
     "twoPass": "Two-Pass Encoding",
-    "hwAutoDetect": "Auto Detect"
+    "hwAutoDetect": "Auto Detect",
+    "infoDuration": "Duration",
+    "infoVideo": "Video",
+    "infoAudio": "Audio",
+    "crfHigh": "High",
+    "crfMid": "Standard",
+    "crfLow": "Low"
   },
   "trim": {
     "start": "Start",
@@ -60,7 +73,11 @@
     "accurateCut": "Accurate Cut (re-encode)",
     "execute": "Cut",
     "preview": "Preview",
-    "addSegment": "Add Segment"
+    "addSegment": "Add Segment",
+    "cutMode": "Cut Mode",
+    "complete": "Cut complete",
+    "running": "Cutting...",
+    "outputPath": "Output Path"
   },
   "extract": {
     "streams": "Stream List",
@@ -73,7 +90,10 @@
     "bitrate": "Bitrate",
     "sampleRate": "Sample Rate",
     "channels": "Channels",
-    "language": "Language"
+    "language": "Language",
+    "complete": "Extraction complete",
+    "running": "Extracting...",
+    "dropzone": "Drag & Drop or Click to select"
   },
   "filter": {
     "catalog": "Filter Catalog",
@@ -126,7 +146,10 @@
     "noLimit": "No Limit",
     "startRecording": "Start Recording",
     "stopRecording": "Stop",
-    "protocol": "Protocol"
+    "protocol": "Protocol",
+    "min": " min",
+    "hour": " h",
+    "resolution": "Resolution"
   },
   "command": {
     "editor": "FFmpeg Command Editor",
@@ -141,7 +164,11 @@
     "builtinTemplates": "Built-in Templates",
     "userTemplates": "User Templates",
     "clearHistory": "Clear History",
-    "historyEmpty": "No history"
+    "historyEmpty": "No history",
+    "templateNamePlaceholder": "Template name...",
+    "noTemplates": "No templates",
+    "logComplete": "Complete",
+    "logError": "Error"
   },
   "presets": {
     "title": "Presets",
@@ -205,7 +232,8 @@
     "import": "Import",
     "reset": "Reset",
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "autoDetect": "(auto-detect)"
   },
   "setup": {
     "title": "Setup",
@@ -215,7 +243,12 @@
     "skip": "Skip",
     "retry": "Retry",
     "checksumVerifying": "Verifying checksum...",
-    "githubNote": "Downloading from GitHub"
+    "githubNote": "Downloading from GitHub",
+    "waiting": "Waiting",
+    "retryBtn": "Retry",
+    "sha256Note": "SHA256 checksum verification",
+    "completeMsg": "Setup complete — closing shortly",
+    "errorMsg": "An error occurred. Please retry."
   },
   "common": {
     "outputDir": "Output Directory",
@@ -232,6 +265,10 @@
     "size": "Size",
     "format": "Format",
     "status": "Status",
-    "operations": "Actions"
+    "operations": "Actions",
+    "dropHere": "Drop file here",
+    "dragOrClick": "Drag & Drop or Click to select",
+    "mediaFilter": "Media",
+    "remaining": "Remaining"
   }
 }

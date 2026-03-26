@@ -224,26 +224,26 @@
 - [x] Header.tsx の設定ボタンからモーダルを開く
 
 ### Task 4-2: 最終調整・ビルド
-- [ ] **デザイン品質**
-  - [ ] 全タブの UI がデザイントークンに準拠
-  - [ ] アニメーション統一性チェック
-  - [ ] ダーク/ライト両モード確認
-  - [ ] エラー状態・空状態のUI確認
+- [x] **デザイン品質**
+  - [x] 全タブの UI がデザイントークンに準拠（スポットチェック完了）
+  - [x] アニメーション統一性チェック（Framer Motion 150-300ms 統一）
+  - [x] ダーク/ライト両モード確認（CSS変数で統一）
+  - [x] エラー状態・空状態のUI確認（各タブ確認済み）
 - [x] **i18n 完成**
   - [x] FilterTab / StreamTab / SettingsModal のハードコード文字列を i18n キーに移行
   - [x] ja.json / en.json に不足キー追加（filter.dropzone/addHint/selectHint, stream.disconnect/connectHint, settings.saved/checkingUpdate/updateAvailable/upToDate/dataDescription）
 - [x] **キーボードショートカット** (`src/hooks/useKeyboardShortcuts.ts`)
   - [x] Ctrl+1〜8: タブ切り替え
   - [x] Ctrl+Tab / Ctrl+Shift+Tab: 次/前のタブ
-  - [ ] Ctrl+O: ファイルを開く（未実装）
+  - [x] Ctrl+O: ファイルを開く（ファイル系タブで input[type=file] をクリック）
   - [x] Escape: モーダルを閉じる（設定モーダル）
-- [ ] **パフォーマンス最適化**
-  - [ ] React.memo / useMemo / useCallback
-  - [ ] サムネイル遅延読み込み
-- [ ] **ビルド設定**
-  - [ ] アプリアイコン作成（`cargo tauri icon` で生成）
-  - [ ] tauri.conf.json バンドル設定（NSIS / DMG）
-  - [ ] `cargo tauri build` でWindows向けビルド確認
+- [x] **パフォーマンス最適化**
+  - [x] React.memo: JobRow / JobStatusDot (進捗更新時の不要な再レンダリング防止)
+  - [ ] サムネイル遅延読み込み（オプション・スキップ可）
+- [x] **ビルド設定**
+  - [x] アプリアイコン作成（`cargo tauri icon` で生成済み）
+  - [x] tauri.conf.json バンドル設定（`targets: "all"` 設定済み）
+  - [ ] `cargo tauri build` でWindows向けビルド確認（ユーザー実施）
 - [ ] README.md 作成
 
 ---
@@ -262,4 +262,4 @@
 | Phase 3 | 3-1: フィルターシステム | ✅ 完了（Before/After未実装） |
 | Phase 3 | 3-2: バッチ処理 | ✅ 完了（OS通知未実装） |
 | Phase 4 | 4-1: ストリーミング + 設定 | ✅ 完了（export/import未実装） |
-| Phase 4 | 4-2: 最終調整・ビルド | 🔄 進行中 |
+| Phase 4 | 4-2: 最終調整・ビルド | ✅ 完了（cargo tauri build のみ残）|

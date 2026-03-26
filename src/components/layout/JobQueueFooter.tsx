@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, X, Pause, Play, Trash2 } from 'lucide-react';
@@ -10,7 +10,7 @@ import type { Job } from '@/types/job';
 
 // ── ステータスアイコン ────────────────────────────────────────────────────────
 
-function JobStatusDot({ status }: { status: Job['status'] }) {
+const JobStatusDot = memo(function JobStatusDot({ status }: { status: Job['status'] }) {
   const color =
     status === 'completed' ? 'var(--status-success)'
     : status === 'running'   ? 'var(--accent-cyan)'
@@ -25,11 +25,11 @@ function JobStatusDot({ status }: { status: Job['status'] }) {
       style={{ backgroundColor: color }}
     />
   );
-}
+});
 
 // ── ジョブ行 ─────────────────────────────────────────────────────────────────
 
-function JobRow({ job }: { job: Job }) {
+const JobRow = memo(function JobRow({ job }: { job: Job }) {
   const t = useTranslations('jobs');
   const cancelJob = useJobStore((s) => s.cancelJob);
   const pauseJob  = useJobStore((s) => s.pauseJob);
@@ -130,7 +130,7 @@ function JobRow({ job }: { job: Job }) {
       </div>
     </div>
   );
-}
+});
 
 // ── メインコンポーネント ──────────────────────────────────────────────────────
 

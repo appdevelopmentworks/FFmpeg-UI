@@ -105,7 +105,7 @@ export function ExtractTab() {
     try {
       const result = await openDialog({
         multiple: false,
-        filters: [{ name: 'メディア', extensions: ['mp4','mkv','avi','mov','webm','flv','ts','m4v'] }],
+        filters: [{ name: 'Media', extensions: ['mp4','mkv','avi','mov','webm','flv','ts','m4v'] }],
       });
       if (result && typeof result === 'string') loadFile(result);
     } catch (err) {
@@ -135,7 +135,7 @@ export function ExtractTab() {
           multiple={false}
           onDrop={handleDrop}
           accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
-          label="ファイルをドラッグ&ドロップ または クリックして選択"
+          label={t('dropzone')}
           sublabel="mp4, mkv, avi, mov, webm, flv, ts"
           className="py-8"
         />
@@ -229,7 +229,7 @@ export function ExtractTab() {
 
                         <div className="flex flex-1 min-w-0 flex-col">
                           <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                            ストリーム #{stream.index} &ndash; {
+                            Stream #{stream.index} &ndash; {
                               stream.streamType === 'video' ? t('video') :
                               stream.streamType === 'audio' ? t('audio') :
                               stream.streamType === 'subtitle' ? t('subtitle') : 'data'
@@ -305,7 +305,7 @@ export function ExtractTab() {
                     {hasError && <AlertCircle className="h-4 w-4" style={{ color: 'var(--status-error)' }} />}
                     {isRunning && <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--accent-cyan)' }} />}
                     <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {isComplete ? '抽出完了' : hasError ? job.error : '抽出中...'}
+                      {isComplete ? t('complete') : hasError ? job.error : t('running')}
                     </span>
                   </div>
 

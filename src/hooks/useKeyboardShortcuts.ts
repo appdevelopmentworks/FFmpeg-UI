@@ -19,6 +19,7 @@ const TAB_ORDER: TabId[] = [
  * Ctrl+1〜8      : タブ切り替え
  * Ctrl+Tab       : 次のタブ
  * Ctrl+Shift+Tab : 前のタブ
+ * Ctrl+O         : ファイルを開く（ファイルを扱うタブのみ有効）
  * Escape         : 設定モーダルを閉じる
  */
 export function useKeyboardShortcuts() {
@@ -44,6 +45,16 @@ export function useKeyboardShortcuts() {
 
       // テキスト入力中はタブ系ショートカットを無効化
       if (isTyping) return;
+
+      // Ctrl+O: ファイルを開く（アクティブタブに file input があるときのみ）
+      if (e.ctrlKey && e.key === 'o' && !e.shiftKey && !e.altKey) {
+        const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+        if (fileInput) {
+          e.preventDefault();
+          fileInput.click();
+        }
+        return;
+      }
 
       // Ctrl+1〜8: タブ切り替え
       if (e.ctrlKey && !e.shiftKey && !e.altKey) {

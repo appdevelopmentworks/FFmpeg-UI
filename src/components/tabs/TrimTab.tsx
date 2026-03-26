@@ -86,7 +86,7 @@ export function TrimTab() {
     try {
       const result = await openDialog({
         multiple: false,
-        filters: [{ name: 'メディア', extensions: ['mp4','mkv','avi','mov','webm','flv','ts','m4v','wmv'] }],
+        filters: [{ name: 'Media', extensions: ['mp4','mkv','avi','mov','webm','flv','ts','m4v','wmv'] }],
       });
       if (result && typeof result === 'string') loadFile(result);
     } catch (err) {
@@ -98,7 +98,7 @@ export function TrimTab() {
     try {
       const result = await openDialog({
         multiple: false,
-        filters: [{ name: 'メディア', extensions: ['mp4','mkv','avi','mov','webm'] }],
+        filters: [{ name: 'Media', extensions: ['mp4','mkv','avi','mov','webm'] }],
       });
       if (result && typeof result === 'string') setOutputPath(result);
     } catch (err) {
@@ -130,7 +130,7 @@ export function TrimTab() {
           multiple={false}
           onDrop={handleDrop}
           accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
-          label="ファイルをドラッグ&ドロップ または クリックして選択"
+          label={tc('dragOrClick')}
           sublabel="mp4, mkv, avi, mov, webm, flv, ts"
           className="py-8"
         />
@@ -217,7 +217,7 @@ export function TrimTab() {
               className="flex flex-col gap-2 rounded-xl p-4"
               style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}
             >
-              <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>カットモード</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('cutMode')}</p>
               {[
                 { value: false, icon: <Zap className="h-3.5 w-3.5" />, label: t('fastCut') },
                 { value: true,  icon: <Target className="h-3.5 w-3.5" />, label: t('accurateCut') },
@@ -241,7 +241,7 @@ export function TrimTab() {
             {/* Output path */}
             <div className="flex items-center gap-2">
               <Input
-                label="出力先"
+                label={t('outputPath')}
                 value={outputPath}
                 onChange={(e) => setOutputPath(e.target.value)}
                 className="flex-1"
@@ -282,7 +282,7 @@ export function TrimTab() {
                       {hasError && <AlertCircle className="h-4 w-4" style={{ color: 'var(--status-error)' }} />}
                       {isRunning && <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--accent-cyan)' }} />}
                       <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {isComplete ? 'カット完了' : hasError ? job.error : 'カット中...'}
+                        {isComplete ? t('complete') : hasError ? job.error : t('running')}
                       </span>
                     </div>
                     {isRunning && (
@@ -300,7 +300,7 @@ export function TrimTab() {
                     <div className="flex gap-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                       <span>{job.percent.toFixed(1)}%</span>
                       {job.speed && <span>{job.speed}</span>}
-                      {job.eta && <span>残り {job.eta}</span>}
+                      {job.eta && <span>{tc('remaining')} {job.eta}</span>}
                     </div>
                   )}
 
