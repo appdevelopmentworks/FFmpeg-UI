@@ -10,10 +10,14 @@ FFmpegとyt-dlpのモダンGUIデスクトップアプリ。
 ```bash
 npm run dev          # Next.js 開発サーバー (http://localhost:3000)
 npm run build        # 静的エクスポート → out/ に出力
-cargo tauri dev      # Tauriデスクトップアプリ起動（Rust必要）
+cargo tauri dev      # Tauriデスクトップアプリ起動（必ずこちらで動作確認）
 cargo tauri build    # 配布用バイナリビルド
 npm run lint         # ESLint チェック
+cargo check          # Rustコンパイルチェック（高速）
 ```
+
+> **重要**: `npm run dev` だけではTauriのバックエンドが起動しない。
+> 動作確認は必ず `cargo tauri dev` で行うこと。
 
 ## ディレクトリ構成
 
@@ -24,9 +28,16 @@ FFmpeg-UI/
 │   ├── app/                  ← App Router (layout.tsx, page.tsx, globals.css)
 │   ├── components/
 │   │   ├── layout/           ← Header, TabBar, JobQueueFooter
-│   │   ├── tabs/             ← 8タブコンポーネント
-│   │   └── shared/           ← 共通コンポーネント（今後追加）
-│   ├── stores/               ← Zustand ストア (job/settings/preset/media/ui)
+│   │   ├── tabs/             ← 8タブコンポーネント（全実装済み）
+│   │   ├── setup/            ← SetupDialog.tsx
+│   │   ├── settings/         ← SettingsModal.tsx
+│   │   ├── shared/           ← Timeline, MediaPlayer, PresetSelector
+│   │   └── ui/               ← Button, Select, Slider, DropZone 等
+│   ├── hooks/                ← useYtDlp, useFFmpeg, useSetup, useTrim, useExtract
+│   ├── stores/               ← Zustand ストア (12ストア)
+│   │   └── ytdlpStore, settingsStore, setupStore, jobStore, mediaStore,
+│   │       filterStore, batchStore, streamStore, trimStore, extractStore,
+│   │       presetStore, uiStore
 │   ├── types/                ← TypeScript型定義 (docs/05に準拠)
 │   ├── lib/
 │   │   ├── tauri/            ← commands.ts, events.ts (Tauriブリッジ)
@@ -36,14 +47,19 @@ FFmpeg-UI/
 └── src-tauri/                ← Rust バックエンド
     ├── src/
     │   ├── main.rs / lib.rs
-    │   ├── models/           ← データ構造 (docs/05のセクション3に準拠)
-    │   ├── commands/         ← Tauri コマンド (#[tauri::command])
-    │   └── services/         ← ビジネスロジック
+    │   ├── config.rs         ← アプリデータディレクトリ設定
+    │   ├── platform.rs       ← バイナリパス解決・OS差異吸収
+    │   ├── error.rs          ← AppError 型定義
+    │   ├── models/           ← データ構造
+    │   ├── commands/         ← setup, ytdlp, ffmpeg, jobs, presets,
+    │   │                        settings, streaming, utility
+    │   └── services/         ← binary_manager, ytdlp_service, ffmpeg_service,
+    │                            job_queue, process_manager
     ├── capabilities/default.json
     └── tauri.conf.json
 ```
 
-## 参照ドキュメント（実装前に必ず確認）
+## 参照ドキュメント（必要な仕様が不明なときだけ参照）
 
 | ドキュメント | 内容 |
 |------------|------|
@@ -52,6 +68,7 @@ FFmpeg-UI/
 | `docs/03_ui_wireframes.md` | UIレイアウト・デザイントークン (セクション15) |
 | `docs/04_api_design.md` | Tauri コマンドAPI全定義 |
 | `docs/05_data_models.md` | TypeScript/Rust型定義・i18nキー構造 |
+| `docs/07_binary_detection.md` | バイナリ検出ハイブリッド方式（uv/PATH対応） |
 
 ## 技術スタック詳細
 
@@ -72,6 +89,8 @@ FFmpeg-UI/
 - **tokio** — 非同期ランタイム (full features)
 - **serde/serde_json** — JSON シリアライズ
 - **thiserror** — エラー型定義
+- **reqwest** — HTTPクライアント（バイナリダウンロード）
+- **uuid** — ジョブID生成
 
 ## コーディング規約
 
@@ -91,7 +110,7 @@ FFmpeg-UI/
 - 新規コマンド追加時は `lib.rs` の `generate_handler![]` にも追加
 
 ### ファイル追加時のルール
-- 新しいRustモジュール → `mod.rs` に `pub mod xxx;` 追加
+- 新しいRustモジュール → `commands/mod.rs` または `services/mod.rs` に `pub mod xxx;` 追加
 - 新しいTauriコマンド → `src-tauri/src/commands/` に追加 + `lib.rs` に登録
 - 新しいサービス → `src-tauri/src/services/` に追加 + `lib.rs` の mod に追加
 
@@ -104,6 +123,7 @@ FFmpeg-UI/
 --bg-tertiary:   #1a1a25    /* ホバー・選択 */
 --text-primary:  #e8e8ed    /* メインテキスト */
 --text-secondary:#8888a0    /* 補助テキスト */
+--text-tertiary: #55556a    /* 薄いテキスト */
 --accent-cyan:   #06d6a0    /* プライマリアクション */
 --accent-blue:   #4895ef    /* セカンダリアクション */
 --border-default: rgba(255,255,255,0.08)  /* 0.5px ボーダー */
@@ -116,22 +136,60 @@ FFmpeg-UI/
 - 角丸: `rounded-lg` (8px) または `rounded-xl` (12px)
 - シャドウ: `var(--shadow-sm/md/lg)`
 
+## 既知のバグ・課題（要対応）
+
+### 1. ダウンロード完了イベントのフィールド名不一致（未修正）
+- **場所**: `src-tauri/src/services/ytdlp_service.rs` の `DlCompletePayload`
+- **問題**: Rustは `output_path`, `file_size`（snake_case）でemitするが、
+  TypeScript側の `onDownloadComplete` は `outputPath`, `fileSize`（camelCase）を期待
+- **影響**: ダウンロード完了後に出力パスが表示されない
+- **修正方針**: Rust構造体に `#[serde(rename_all = "camelCase")]` を追加
+
+### 2. YouTubeタブ「取得」ボタンのローディング表示バグ（修正済み 2026-03-26）
+- `src/hooks/useYtDlp.ts` の `fetchInfo` で `setVideoInfo(null)` が `fetchState` を
+  `'idle'` に戻してしまい、ローディングスピナーが表示されなかった
+- `setVideoInfo(null)` → `setFetchState('loading')` の順に変更して修正済み
+
+## 開発フェーズと実装状況
+
+- **Phase 0** ✅ プロジェクト初期化・デザインシステム
+- **Phase 1** ✅ FFmpeg/yt-dlp自動セットアップ + YouTube・分離・トリミング
+- **Phase 2** ✅ フォーマット変換 + エンコード設定 + フィルター + バッチ処理
+- **Phase 3** ✅ ストリーミング + 設定画面（プリセット・ジョブ管理含む）
+- **Phase 4** 🔲 **現在のフォーカス**: バグ修正・最終調整・ビルド
+
+### 実装済み機能一覧
+| タブ | コンポーネント | 状態 |
+|------|--------------|------|
+| YouTube | YouTubeTab.tsx | ✅ |
+| 変換 | ConvertTab.tsx | ✅ |
+| カット | TrimTab.tsx | ✅ |
+| 分離 | ExtractTab.tsx | ✅ |
+| フィルター | FilterTab.tsx | ✅ |
+| バッチ | BatchTab.tsx | ✅ |
+| ストリーム | StreamTab.tsx | ✅ |
+| コマンド | CommandTab.tsx | ✅ |
+| 設定モーダル | SettingsModal.tsx | ✅ |
+| セットアップダイアログ | SetupDialog.tsx | ✅ |
+
+### 未コミットの変更（要コミット）
+以下のファイルがワーキングツリーで変更中（`git status` で確認可能）:
+- `src-tauri/src/commands/streaming.rs` (新規)
+- `src-tauri/src/commands/utility.rs` (新規)
+- `src-tauri/src/commands/mod.rs, presets.rs, settings.rs`
+- `src-tauri/src/lib.rs`
+- `src/components/tabs/FilterTab.tsx`
+- `src/hooks/useYtDlp.ts` (2026-03-26のバグ修正)
+- `src/lib/i18n/en.json, ja.json`
+
 ## 既知の制約・注意事項
 
-1. **next-intl SSGの警告**: ビルド時に `ENVIRONMENT_FALLBACK` が出るが非致命的。Tauriランタイム(クライアントサイド)では正常動作。
-2. **Tauriコマンド引数**: `invoke()` の第2引数にインターフェース型を直接渡すと型エラーになる場合がある。`{ ...params }` でスプレッドするか個別に渡す。
-3. **`output: 'export'`**: middleware.ts は使用不可。i18nルーティングは使わず、Zustandでロケール管理。
-4. **icons/**: `cargo tauri build` には `src-tauri/icons/` が必要。`cargo tauri icon` コマンドで生成。
-
-## 開発フェーズ
-
-- **Phase 0** ✅ プロジェクト初期化（完了）
-- **Phase 1** ✅ FFmpeg/yt-dlp自動セットアップ + コア機能 (YouTube, 分離, トリミング)（完了）
-- **Phase 2** ✅ フォーマット変換 + エンコード設定 + フィルター + バッチ処理（完了）
-- **Phase 3** 🔲 ストリーミング + 設定画面
-- **Phase 4** 🔲 最終調整・ビルド
-
-詳細な実装状況は `docs/06_claude_code_prompt.md` を参照。
+1. **next-intl SSGの警告**: ビルド時に `ENVIRONMENT_FALLBACK` が出るが非致命的。
+2. **Tauriコマンド引数**: `invoke()` の第2引数は `{ ...params }` でスプレッド推奨。
+3. **`output: 'export'`**: middleware.ts は使用不可。Zustandでロケール管理。
+4. **icons/**: `cargo tauri build` には `src-tauri/icons/` が必要。`cargo tauri icon` で生成。
+5. **バイナリ検出**: yt-dlp/FFmpegは `%LOCALAPPDATA%\ffmpeg-ui\bin\` → PATH の順で探索。
+   開発者環境では `uv tool install yt-dlp` でインストール済み（`C:\Users\hartm\.local\bin\`）。
 
 ## Claude Codeへの開発ルール（重要）
 
@@ -144,7 +202,6 @@ FFmpeg-UI/
 2. **タスクを自分で小さく分割して進める**
    - 1回のメッセージで実装するのは「1ファイル〜3ファイル程度」に留める。
    - 大きな機能は自分でサブタスクに分解し、1つずつ完了させる。
-   - 例: 「FilterTab実装」→ ① filters.ts定義 → ② filterStore.ts → ③ FilterTab.tsx
 
 3. **ファイルを書く前に読みすぎない**
    - 参照すべきファイルは最大2〜3ファイルに絞る。
@@ -152,8 +209,7 @@ FFmpeg-UI/
 
 4. **定期的に /compact を使う**
    - 実装が一区切りついたら /compact で圧縮してから次のタスクへ。
-   - コンテキスト上限に達する前に自発的に /compact を提案する。
 
 5. **サブエージェントは独立タスクにのみ使う**
-   - 並列で書けるファイル（FilterTab と BatchTab など）はサブエージェントに委譲可。
-   - サブエージェントはWrite権限が制限されることがあるため、重要なファイルは親で書く。
+   - 並列で書けるファイルはサブエージェントに委譲可。
+   - 重要なファイルは親で直接書く。

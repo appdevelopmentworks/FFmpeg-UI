@@ -157,7 +157,7 @@ function FilterChainItem({
       <button
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         className="shrink-0"
-        title={applied.enabled ? 'Disable' : 'Enable'}
+        title={applied.enabled ? t('disableFilter') : t('enableFilter')}
       >
         {applied.enabled
           ? <Eye className="h-3.5 w-3.5" style={{ color: 'var(--accent-cyan)' }} />
@@ -369,8 +369,8 @@ export function FilterTab() {
   const handleSelectFile = async () => {
     try {
       const paths = await openFileDialog(
-        'Select Media File',
-        [{ name: 'Media', extensions: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav', 'flac'] }],
+        t('selectMediaFile'),
+        [{ name: t('mediaFiles'), extensions: ['mp4', 'mkv', 'avi', 'mov', 'webm', 'mp3', 'wav', 'flac'] }],
         false,
         false,
       );
@@ -451,7 +451,7 @@ export function FilterTab() {
 
   const handleSelectOutputDir = async () => {
     try {
-      const paths = await openFileDialog('Select Output Directory', [], false, true);
+      const paths = await openFileDialog(t('selectOutputDir'), [], false, true);
       if (paths && paths.length > 0) setOutputDir(paths[0]);
     } catch (err) {
       console.error('Dir dialog error:', err);

@@ -41,6 +41,11 @@ pub fn run() {
             commands::presets::get_presets,
             commands::presets::save_preset,
             commands::presets::delete_preset,
+            commands::presets::export_presets,
+            commands::presets::import_presets,
+            // Settings (extended)
+            commands::settings::export_settings,
+            commands::settings::import_settings,
             // Jobs
             commands::jobs::get_jobs,
             commands::jobs::cancel_job,
@@ -48,6 +53,15 @@ pub fn run() {
             commands::jobs::resume_job,
             commands::jobs::reorder_jobs,
             commands::jobs::clear_completed_jobs,
+            // Streaming
+            commands::streaming::probe_stream,
+            commands::streaming::start_recording,
+            commands::streaming::stop_recording,
+            // Utility
+            commands::utility::open_file_dialog,
+            commands::utility::open_save_dialog,
+            commands::utility::open_in_explorer,
+            commands::utility::get_system_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

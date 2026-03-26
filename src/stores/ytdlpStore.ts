@@ -27,6 +27,7 @@ interface YtDlpStore {
   setFetchState: (state: FetchState) => void;
   setVideoInfo: (info: VideoInfo | null) => void;
   setFetchError: (error: string | null) => void;
+  startFetch: (url: string) => void;
   setSelectedFormatId: (id: string | null) => void;
   setOutputDir: (dir: string) => void;
   startDownloadJob: (jobId: string) => void;
@@ -67,6 +68,15 @@ export const useYtDlpStore = create<YtDlpStore>((set) => ({
 
   setFetchError: (error) =>
     set({ fetchError: error, fetchState: error ? 'error' : 'idle' }),
+
+  startFetch: (url) =>
+    set({
+      url,
+      fetchState: 'loading',
+      videoInfo: null,
+      fetchError: null,
+      selectedFormatId: null,
+    }),
 
   setSelectedFormatId: (id) => set({ selectedFormatId: id }),
 

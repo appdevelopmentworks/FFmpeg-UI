@@ -56,11 +56,34 @@ function formatUploadDate(dateStr: string): string {
   return `${y}/${m}/${d}`;
 }
 
-type ModeFilter = 'videoAndAudio' | 'videoOnly' | 'audioOnly';
+/** YouTube URLから動画IDを抽出する */
+function extractVideoId(url: string): string | null {
+  try {
+    const u = new URL(url);
+    // youtu.be/VIDEO_ID
+    if (u.hostname === 'youtu.be') {
+      return u.pathname.slice(1).split('/')[0] || null;
+    }
+    // youtube.com/watch?v=VIDEO_ID
+    if (u.hostname.includes('youtube.com')) {
+      // /shorts/VIDEO_ID
+      const shortsMatch = u.pathname.match(/\/shorts\/([^/?]+)/);
+      if (shortsMatch) return shortsMatch[1];
+      // standard ?v=
+      return u.searchParams.get('v') || null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+type ModeFilter = 'best' | 'videoAndAudio' | 'videoOnly' | 'audioOnly';
 
 function filterFormats(formats: DownloadFormat[], mode: ModeFilter): DownloadFormat[] {
   return formats
     .filter((f) => {
+      if (mode === 'best') return f.hasVideo && !f.hasAudio; // 映像のみ（音声は自動マージ）
       if (mode === 'videoAndAudio') return f.hasVideo && f.hasAudio;
       if (mode === 'videoOnly') return f.hasVideo && !f.hasAudio;
       return f.hasAudio && !f.hasVideo;
@@ -166,7 +189,7 @@ export function YouTubeTab() {
   } = useYtDlp();
 
   const [inputUrl, setInputUrl] = useState(url);
-  const [mode, setMode] = useState<ModeFilter>('videoAndAudio');
+  const [mode, setMode] = useState<ModeFilter>('best');
   const [descExpanded, setDescExpanded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -215,11 +238,14 @@ export function YouTubeTab() {
   const handleDownload = useCallback(async () => {
     if (!videoInfo || !selectedFormatId) return;
     const dir = outputDir || defaultOutputDir;
+    // ベスト画質モード: 映像ID+bestaudio で自動マージ
+    const formatId = mode === 'best' ? `${selectedFormatId}+bestaudio` : selectedFormatId;
+    const needsMerge = mode === 'best' || mode === 'videoAndAudio';
     await startDownload({
       url: inputUrl,
-      formatId: selectedFormatId,
+      formatId,
       outputDir: dir,
-      mergeFormat: mode === 'videoAndAudio' ? 'mp4' : undefined,
+      mergeFormat: needsMerge ? 'mp4' : undefined,
     });
   }, [videoInfo, selectedFormatId, outputDir, defaultOutputDir, inputUrl, mode, startDownload]);
 
@@ -236,11 +262,13 @@ export function YouTubeTab() {
   }, [mode, videoInfo]);
 
   const modeOptions = [
+    { value: 'best' as const, label: t('bestQuality') },
     { value: 'videoAndAudio' as const, label: t('videoAndAudio') },
     { value: 'videoOnly' as const, label: t('videoOnly') },
     { value: 'audioOnly' as const, label: t('audioOnly') },
   ];
 
+  const videoId = extractVideoId(inputUrl.trim());
   const filteredFormats = videoInfo ? filterFormats(videoInfo.formats, mode) : [];
   const isDownloading = download.status === 'downloading';
   const isComplete = download.status === 'complete';
@@ -283,11 +311,91 @@ export function YouTubeTab() {
         )}
       </div>
 
+      {/* YouTube preview — URL入力だけで即表示 */}
+      <AnimatePresence>
+        {videoId && (
+          <motion.div
+            key={videoId}
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="overflow-hidden rounded-xl"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '0.5px solid var(--border-default)',
+            }}
+          >
+            <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
+              {/* サムネイル画像（読み込めない場合はフォールバックUI上に重なる） */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+                alt="Video thumbnail"
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ zIndex: 1 }}
+                onError={(e) => {
+                  // 画像読み込み失敗時は非表示にしてフォールバックUIを見せる
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              {/* フォールバックUI（画像の背後に常に存在） */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ zIndex: 0, backgroundColor: 'var(--bg-tertiary)' }}>
+                <Youtube className="h-16 w-16" style={{ color: 'var(--status-error)' }} />
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {videoId}
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  YouTube動画を検出しました
+                </p>
+              </div>
+              {/* 再生ボタンオーバーレイ */}
+              <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 2 }}>
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-full"
+                  style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+                >
+                  <Play className="h-8 w-8 ml-1" style={{ color: 'white' }} />
+                </div>
+              </div>
+            </div>
+            {/* クイックダウンロード — 取得不要で最高画質DL */}
+            <div className="flex items-center gap-3 px-4 py-3" style={{ borderTop: '0.5px solid var(--border-default)' }}>
+              <p className="flex-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                ID: {videoId}
+              </p>
+              {fetchState === 'loading' ? (
+                <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--accent-cyan)' }}>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {t('fetch')}中...
+                </div>
+              ) : fetchState === 'error' ? (
+                <p className="text-xs" style={{ color: 'var(--status-error)' }}>
+                  {fetchError}
+                </p>
+              ) : null}
+              <button
+                onClick={handleFetch}
+                disabled={fetchState === 'loading'}
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+                style={{ backgroundColor: 'rgba(6,214,160,0.15)', color: 'var(--accent-cyan)' }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                {t('fetch')}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Error state */}
       <AnimatePresence>
         {fetchState === 'error' && fetchError && (
           <motion.div
-            {...fadeIn}
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="flex items-start gap-3 rounded-xl px-4 py-3"
             style={{
               backgroundColor: 'rgba(239,71,111,0.08)',
@@ -305,7 +413,7 @@ export function YouTubeTab() {
       {/* Loading skeleton */}
       <AnimatePresence>
         {fetchState === 'loading' && (
-          <motion.div {...fadeIn} className="flex gap-4 rounded-xl p-4" style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}>
+          <motion.div variants={fadeIn} initial="hidden" animate="visible" exit="exit" className="flex gap-4 rounded-xl p-4" style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}>
             <div className="h-36 w-64 shrink-0 animate-pulse rounded-lg" style={{ backgroundColor: 'var(--bg-tertiary)' }} />
             <div className="flex flex-1 flex-col gap-3 pt-2">
               <div className="h-4 animate-pulse rounded" style={{ backgroundColor: 'var(--bg-tertiary)', width: '80%' }} />
@@ -320,7 +428,10 @@ export function YouTubeTab() {
       <AnimatePresence>
         {fetchState === 'success' && videoInfo && (
           <motion.div
-            {...slideUp}
+            variants={slideUp}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="flex gap-4 rounded-xl p-4"
             style={{
               backgroundColor: 'var(--bg-secondary)',
@@ -401,7 +512,7 @@ export function YouTubeTab() {
       {/* Format selection */}
       <AnimatePresence>
         {fetchState === 'success' && videoInfo && (
-          <motion.div {...slideUp} className="flex flex-col gap-4">
+          <motion.div variants={slideUp} initial="hidden" animate="visible" exit="exit" className="flex flex-col gap-4">
             {/* Mode selector */}
             <SegmentedControl
               options={modeOptions}
@@ -464,7 +575,10 @@ export function YouTubeTab() {
       <AnimatePresence>
         {(isDownloading || isComplete || hasError) && (
           <motion.div
-            {...slideUp}
+            variants={slideUp}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="flex flex-col gap-3 rounded-xl p-4"
             style={{
               backgroundColor: 'var(--bg-secondary)',
@@ -524,9 +638,12 @@ export function YouTubeTab() {
 
       {/* Empty state */}
       <AnimatePresence>
-        {fetchState === 'idle' && (
+        {fetchState === 'idle' && !videoId && (
           <motion.div
-            {...fadeIn}
+            variants={fadeIn}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
             className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl py-16"
             style={{
               backgroundColor: 'var(--bg-secondary)',

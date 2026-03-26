@@ -43,3 +43,23 @@ pub async fn reset_settings() -> Result<AppSettings, String> {
     update_settings(defaults.clone()).await?;
     Ok(defaults)
 }
+
+/// 設定をJSONファイルにエクスポートする
+#[tauri::command]
+pub async fn export_settings(path: String) -> Result<(), String> {
+    let settings = get_settings().await?;
+    let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    tokio::fs::write(&path, json)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// JSONファイルから設定をインポートする
+#[tauri::command]
+pub async fn import_settings(path: String) -> Result<(), String> {
+    let content = tokio::fs::read_to_string(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    let settings: AppSettings = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    update_settings(settings).await
+}

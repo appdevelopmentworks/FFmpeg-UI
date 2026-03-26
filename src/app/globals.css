@@ -5,9 +5,9 @@
 
 /* ── Design Tokens ──────────────────────────────────────────────────────── */
 @theme {
-  /* Fonts — referencing next/font CSS variables injected via layout.tsx */
-  --font-sans: var(--font-inter), var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains), "Fira Code", ui-monospace, monospace;
+  /* Fonts — system fonts (no external download needed) */
+  --font-sans: "Segoe UI", "Meiryo", "Noto Sans JP", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "Consolas", "Fira Code", ui-monospace, monospace;
 
   /* Animation */
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);

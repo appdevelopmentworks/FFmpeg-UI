@@ -232,3 +232,33 @@ pub async fn delete_preset(preset_id: String) -> Result<(), String> {
     user_presets.retain(|p| p.id != preset_id);
     save_user_presets(&user_presets).await
 }
+
+#[tauri::command]
+pub async fn export_presets(path: String) -> Result<(), String> {
+    let user_presets = load_user_presets().await;
+    let json = serde_json::to_string_pretty(&user_presets).map_err(|e| e.to_string())?;
+    tokio::fs::write(&path, json)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn import_presets(path: String) -> Result<usize, String> {
+    let content = tokio::fs::read_to_string(&path)
+        .await
+        .map_err(|e| e.to_string())?;
+    let imported: Vec<Preset> = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    let count = imported.len();
+
+    let mut user_presets = load_user_presets().await;
+    for preset in imported {
+        if let Some(existing) = user_presets.iter_mut().find(|p| p.id == preset.id) {
+            *existing = preset;
+        } else {
+            user_presets.push(preset);
+        }
+    }
+
+    save_user_presets(&user_presets).await?;
+    Ok(count)
+}
