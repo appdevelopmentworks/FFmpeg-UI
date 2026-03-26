@@ -67,14 +67,16 @@ export function StreamTab() {
     setStatus('connecting');
     try {
       const info = await probeStream(url.trim());
+      const videoStream = info.streams.find((s) => s.streamType === 'video');
+      const audioStream = info.streams.find((s) => s.streamType === 'audio');
       setStreamInfo({
         url: url.trim(),
-        videoCodec: info.video_codec ?? undefined,
-        audioCodec: info.audio_codec ?? undefined,
-        width: info.width ?? undefined,
-        height: info.height ?? undefined,
-        fps: info.fps ?? undefined,
-        bitrate: info.bitrate ?? undefined,
+        videoCodec: videoStream?.codecName,
+        audioCodec: audioStream?.codecName,
+        width: videoStream?.width,
+        height: videoStream?.height,
+        fps: videoStream?.fps,
+        bitrate: audioStream?.bitRate,
       });
       setStatus('connected');
     } catch (err) {
@@ -102,7 +104,7 @@ export function StreamTab() {
         url: url.trim(),
         outputPath: outPath,
         format: outputFormat,
-        duration: durationLimit > 0 ? durationLimit : undefined,
+        durationLimit: durationLimit > 0 ? durationLimit : undefined,
       });
       setJobId(id);
       setStatus('recording');
@@ -199,7 +201,7 @@ export function StreamTab() {
               border: '0.5px solid var(--border-default)',
             }}
           >
-            切断
+            {t('disconnect')}
           </button>
         ) : (
           <button
@@ -297,7 +299,7 @@ export function StreamTab() {
                 {t('preview')}
               </p>
               <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                URLを入力して接続してください
+                {t('connectHint')}
               </p>
             </div>
           )}

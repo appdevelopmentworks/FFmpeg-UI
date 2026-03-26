@@ -8,11 +8,16 @@ FFmpeg と yt-dlp のモダン GUI デスクトップアプリ。
 
 ## 機能
 
-- YouTube 動画ダウンロード（フォーマット・画質選択）
-- 音声 / 映像ストリーム分離
-- 動画トリミング（高速コピー / 精密再エンコード）
-- フォーマット変換（Phase 2 以降）
-- バッチ処理（Phase 3 以降）
+| タブ | 機能 |
+|------|------|
+| **YouTube** | URL入力でメタ情報取得・ダウンロード（映像/音声/両方選択） |
+| **変換** | フォーマット変換・コーデック設定・プリセット管理・HWエンコード対応 |
+| **カット** | タイムライン付きトリミング（高速コピー / フレーム精度） |
+| **分離** | 音声/映像ストリームの個別抽出 |
+| **フィルター** | 映像・音声フィルターチェーン（映像13種・音声6種） |
+| **バッチ** | 複数ファイル一括処理（並列実行対応） |
+| **ストリーム** | RTMP/HLS/DASHストリームの録画 |
+| **コマンド** | FFmpegコマンド直接編集・シンタックスハイライト・履歴管理 |
 
 ---
 
@@ -41,8 +46,6 @@ winget install Rustlang.Rustup
 ```powershell
 cargo --version
 ```
-
-> **注意:** `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh` は Linux/macOS 用です。Windows では使用しないでください。
 
 ---
 
@@ -86,19 +89,13 @@ cargo tauri dev
 
 ## ビルド（配布用）
 
-アイコンの準備（初回のみ）：
-
-```powershell
-cargo tauri icon src-tauri/icons/icon.ico
-```
-
-ビルド：
-
 ```powershell
 cargo tauri build
 ```
 
 生成物は `src-tauri/target/release/bundle/` に出力されます。
+
+> アイコンを差し替える場合は `cargo tauri icon your-image.png` で再生成してください。
 
 ---
 
@@ -114,6 +111,17 @@ cargo tauri build  # 配布用バイナリビルド
 
 ---
 
+## キーボードショートカット
+
+| ショートカット | 動作 |
+|--------------|------|
+| `Ctrl+1〜8` | タブ切り替え |
+| `Ctrl+Tab` | 次のタブへ |
+| `Ctrl+Shift+Tab` | 前のタブへ |
+| `Escape` | 設定モーダルを閉じる |
+
+---
+
 ## FFmpeg / yt-dlp について
 
 アプリ起動時に自動的に存在確認を行います。
@@ -125,6 +133,12 @@ cargo tauri build  # 配布用バイナリビルド
 
 ## 技術スタック
 
-- **フロントエンド:** Next.js 15, React 19, TypeScript 5, Tailwind CSS 4, Framer Motion, Zustand
-- **バックエンド:** Tauri 2, Rust, tokio
-- **i18n:** next-intl（日本語 / English）
+| カテゴリ | 技術 |
+|---------|------|
+| フロントエンド | Next.js 15 (App Router, SSG), React 19, TypeScript 5 |
+| スタイリング | Tailwind CSS 4, Framer Motion |
+| 状態管理 | Zustand |
+| i18n | next-intl（日本語/英語） |
+| デスクトップ | Tauri 2 (Rust), tokio |
+| アイコン | Lucide React |
+| 外部ツール | FFmpeg, yt-dlp（初回起動時に自動ダウンロード） |

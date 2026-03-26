@@ -383,7 +383,7 @@ export function FilterTab() {
         setOutputFilename(`${base}_filtered`);
         try {
           const info = await probeMedia(p);
-          setMediaInfo({ filename: fname, duration: info.format.duration });
+          setMediaInfo({ filename: fname, duration: info.duration });
         } catch {
           setMediaInfo({ filename: fname });
         }
@@ -408,8 +408,23 @@ export function FilterTab() {
 
     setIsApplying(true);
     try {
-      const chain = buildFilterChain(filters);
       const out = `${outputDir ? `${outputDir}/` : ''}${outputFilename || 'output'}.mp4`;
+
+      const filterSpecs = filters
+        .map((f, idx) => {
+          const def = getFilterById(f.filterId);
+          if (!def) return null;
+          return {
+            id: f.instanceId,
+            name: def.ffmpegFilter,
+            displayName: def.nameKey,
+            category: def.category as import('@/types/ffmpeg').FilterCategory,
+            params: Object.fromEntries(Object.entries(f.params).map(([k, v]) => [k, String(v)])),
+            enabled: f.enabled,
+            order: idx,
+          };
+        })
+        .filter((f): f is NonNullable<typeof f> => f !== null);
 
       const command: FFmpegCommand = {
         inputPath: inputFile,
@@ -417,7 +432,7 @@ export function FilterTab() {
         videoCodec: 'libx264',
         audioCodec: 'aac',
         container: 'mp4',
-        filters: chain ? [chain] : [],
+        filters: filterSpecs,
         extraArgs: [],
         twoPass: false,
         copyVideo: false,
@@ -479,7 +494,7 @@ export function FilterTab() {
               </>
             ) : (
               <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                ファイルをドラッグ&ドロップ または クリックして選択
+                {t('dropzone')}
               </p>
             )}
           </div>
@@ -519,7 +534,7 @@ export function FilterTab() {
                 className="text-xs opacity-50 hover:opacity-100 transition-opacity"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                {tCommon('delete')} {tCommon('operations')}
+                {t('deleteAll')}
               </button>
             )}
           </div>
@@ -528,7 +543,7 @@ export function FilterTab() {
             {filters.length === 0 ? (
               <div className="flex h-full items-center justify-center p-6">
                 <p className="text-center text-sm" style={{ color: 'var(--text-tertiary)' }}>
-                  ← フィルターをクリックして追加
+                  {t('addHint')}
                 </p>
               </div>
             ) : (
@@ -667,7 +682,7 @@ export function FilterTab() {
           ) : (
             <div className="flex h-full items-center justify-center p-4">
               <p className="text-center text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                フィルターを選択してパラメータを編集
+                {t('selectHint')}
               </p>
             </div>
           )}

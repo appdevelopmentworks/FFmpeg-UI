@@ -414,7 +414,7 @@ export function SettingsModal({ open, onClose }: Props) {
                         }}
                       >
                         {checkingUpdates
-                          ? <><span className="animate-spin">↻</span> 確認中...</>
+                          ? <><span className="animate-spin">↻</span> {t('checkingUpdate')}</>
                           : <><Download className="h-3.5 w-3.5" /> {t('checkUpdate')}</>
                         }
                       </button>
@@ -425,14 +425,14 @@ export function SettingsModal({ open, onClose }: Props) {
                               ? <ChevronRight className="h-3 w-3" style={{ color: 'var(--status-warning)' }} />
                               : <Check className="h-3 w-3" style={{ color: 'var(--status-success)' }} />
                             }
-                            FFmpeg: {updateInfo.ffmpegUpdate ? 'アップデートあり' : '最新'}
+                            FFmpeg: {updateInfo.ffmpegUpdate ? t('updateAvailable') : t('upToDate')}
                           </div>
                           <div className="flex items-center gap-1.5">
                             {updateInfo.ytdlpUpdate
                               ? <ChevronRight className="h-3 w-3" style={{ color: 'var(--status-warning)' }} />
                               : <Check className="h-3 w-3" style={{ color: 'var(--status-success)' }} />
                             }
-                            yt-dlp: {updateInfo.ytdlpUpdate ? 'アップデートあり' : '最新'}
+                            yt-dlp: {updateInfo.ytdlpUpdate ? t('updateAvailable') : t('upToDate')}
                           </div>
                         </div>
                       )}
@@ -443,7 +443,7 @@ export function SettingsModal({ open, onClose }: Props) {
                 {section === 'data' && (
                   <div className="space-y-4">
                     <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      設定のエクスポート・インポート・リセット
+                      {t('dataDescription')}
                     </p>
                     <div className="flex flex-col gap-2">
                       <button
@@ -515,7 +515,7 @@ export function SettingsModal({ open, onClose }: Props) {
                     : '0.5px solid var(--accent-cyan)',
                 }}
               >
-                {saved ? <><Check className="h-3.5 w-3.5" /> 保存済み</> : t('save')}
+                {saved ? <><Check className="h-3.5 w-3.5" /> {t('saved')}</> : t('save')}
               </button>
             </div>
           </motion.div>

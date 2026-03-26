@@ -12,6 +12,7 @@ import { BatchTab } from '@/components/tabs/BatchTab';
 import { StreamTab } from '@/components/tabs/StreamTab';
 import { CommandTab } from '@/components/tabs/CommandTab';
 import { useUIStore } from '@/stores/uiStore';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const TAB_CONTENT = {
@@ -28,6 +29,7 @@ const TAB_CONTENT = {
 export default function Home() {
   const activeTab = useUIStore((s) => s.activeTab);
   const ActiveTabComponent = TAB_CONTENT[activeTab];
+  useKeyboardShortcuts();
 
   return (
     <div

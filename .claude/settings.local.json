@@ -14,7 +14,8 @@
       "Bash(sort echo:*)",
       "Bash(cmd /c \"cargo check 2>&1\")",
       "Bash(cmd /c \"cd C:\\\\\\\\Users\\\\\\\\hartm\\\\\\\\Desktop\\\\\\\\FFmpeg-UI\\\\\\\\src-tauri && cargo check 2>&1\")",
-      "Bash(powershell -Command \"Set-Location 'C:\\\\\\\\Users\\\\\\\\hartm\\\\\\\\Desktop\\\\\\\\FFmpeg-UI\\\\\\\\src-tauri'; cargo check 2>&1\")"
+      "Bash(powershell -Command \"Set-Location 'C:\\\\\\\\Users\\\\\\\\hartm\\\\\\\\Desktop\\\\\\\\FFmpeg-UI\\\\\\\\src-tauri'; cargo check 2>&1\")",
+      "Bash(cargo tauri:*)"
     ]
   }
 }

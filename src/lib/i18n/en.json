@@ -95,7 +95,11 @@
     "fade": "Fade",
     "speed": "Speed",
     "preview": "Preview",
-    "beforeAfter": "Before/After"
+    "beforeAfter": "Before/After",
+    "dropzone": "Drag & Drop file here or Click to select",
+    "addHint": "← Click a filter to add",
+    "selectHint": "Select a filter to edit parameters",
+    "deleteAll": "Clear All"
   },
   "batch": {
     "dropMultiple": "Drag & Drop multiple files here",
@@ -113,6 +117,8 @@
   "stream": {
     "urlPlaceholder": "Enter stream URL",
     "connect": "Connect",
+    "disconnect": "Disconnect",
+    "connectHint": "Enter a URL and click Connect",
     "preview": "Preview",
     "recordSettings": "Recording Settings",
     "outputFormat": "Output Format",
@@ -190,6 +196,11 @@
     "parallelJobs": "Parallel Jobs",
     "recommendedValue": "Recommended",
     "checkUpdate": "Check for Updates",
+    "checkingUpdate": "Checking...",
+    "updateAvailable": "Update available",
+    "upToDate": "Up to date",
+    "dataDescription": "Export, import, or reset settings",
+    "saved": "Saved",
     "export": "Export",
     "import": "Import",
     "reset": "Reset",

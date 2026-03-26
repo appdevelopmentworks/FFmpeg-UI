@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Moon, Sun, Settings, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSettingsStore } from '@/stores/settingsStore';
+import { useUIStore } from '@/stores/uiStore';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import type { ThemeMode, AppLocale } from '@/types/settings';
 
@@ -19,7 +19,8 @@ export function Header() {
   const locale = useSettingsStore((s) => s.locale);
   const setTheme = useSettingsStore((s) => s.setTheme);
   const setLocale = useSettingsStore((s) => s.setLocale);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpen = useUIStore((s) => s.settingsOpen);
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
 
   const isDark = theme === 'dark';
 

@@ -95,7 +95,11 @@
     "fade": "フェード",
     "speed": "速度変更",
     "preview": "プレビュー",
-    "beforeAfter": "Before/After"
+    "beforeAfter": "Before/After",
+    "dropzone": "ファイルをドラッグ&ドロップ または クリックして選択",
+    "addHint": "← フィルターをクリックして追加",
+    "selectHint": "フィルターを選択してパラメータを編集",
+    "deleteAll": "全削除"
   },
   "batch": {
     "dropMultiple": "複数ファイルをドラッグ&ドロップ",
@@ -113,6 +117,8 @@
   "stream": {
     "urlPlaceholder": "ストリームURL を入力",
     "connect": "接続",
+    "disconnect": "切断",
+    "connectHint": "URLを入力して接続してください",
     "preview": "プレビュー",
     "recordSettings": "録画設定",
     "outputFormat": "出力フォーマット",
@@ -190,6 +196,11 @@
     "parallelJobs": "並列処理数",
     "recommendedValue": "推奨値",
     "checkUpdate": "アップデート確認",
+    "checkingUpdate": "確認中...",
+    "updateAvailable": "アップデートあり",
+    "upToDate": "最新",
+    "dataDescription": "設定のエクスポート・インポート・リセット",
+    "saved": "保存済み",
     "export": "エクスポート",
     "import": "インポート",
     "reset": "リセット",

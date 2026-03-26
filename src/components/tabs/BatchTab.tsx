@@ -80,7 +80,7 @@ export function BatchTab() {
           useBatchStore.setState((state) => ({
             files: state.files.map((f) =>
               f.path === path
-                ? { ...f, size: Math.round((info.format.size ?? 0)) }
+                ? { ...f, size: info.size ?? 0 }
                 : f,
             ),
           }));
@@ -159,6 +159,13 @@ export function BatchTab() {
           ? `${settings.outputDir}/${outName}.${settings.container}`
           : file.path.replace(/\.[^.]+$/, `_${outName}.${settings.container}`);
 
+        // Parse resolution string (e.g. "1920x1080") into Resolution type
+        const resolutionObj = (() => {
+          if (settings.resolution === 'original') return undefined;
+          const [w, h] = settings.resolution.split('x').map(Number);
+          return w && h ? { width: w, height: h } : undefined;
+        })();
+
         const command: FFmpegCommand = {
           inputPath: file.path,
           outputPath,
@@ -169,12 +176,10 @@ export function BatchTab() {
           extraArgs: [],
           twoPass: false,
           copyVideo: false,
-          copyAudio: settings.operation === 'extract_audio' ? false : false,
+          copyAudio: false,
           noVideo: settings.operation === 'extract_audio',
           noAudio: false,
-          ...(settings.resolution !== 'original'
-            ? { resolution: settings.resolution }
-            : {}),
+          ...(resolutionObj ? { resolution: resolutionObj } : {}),
         };
 
         const jobId = await executeFFmpeg(command);
@@ -458,7 +463,7 @@ export function BatchTab() {
               }}
             >
               {CONTAINERS.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
@@ -480,7 +485,7 @@ export function BatchTab() {
                 }}
               >
                 {VIDEO_CODECS.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
@@ -502,7 +507,7 @@ export function BatchTab() {
               }}
             >
               {AUDIO_CODECS.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
@@ -524,8 +529,8 @@ export function BatchTab() {
                 }}
               >
                 <option value="original">{tc('keepOriginal')}</option>
-                {RESOLUTION_PRESETS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
+                {RESOLUTION_PRESETS.filter((r) => r.id !== 'original' && r.id !== 'custom').map((r) => (
+                  <option key={r.id} value={`${r.width}x${r.height}`}>{r.name}</option>
                 ))}
               </select>
             </div>
