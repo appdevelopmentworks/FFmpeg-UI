@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 import type { MediaInfo, WaveformData } from '@/types/media';
 import type { FFmpegCommand, HWEncoder } from '@/types/ffmpeg';
 import type { VideoInfo, DownloadParams, DownloadProgress } from '@/types/ytdlp';
@@ -18,6 +18,15 @@ import type {
   StreamProbeResult,
   EstimateParams,
 } from '@/types/ui';
+
+/** Tauri webview外（ブラウザ直接アクセス時）でも安全に呼べるラッパー */
+function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+    console.warn(`[commands] Tauri not available, skipping: ${cmd}`);
+    return Promise.reject(new Error(`Tauri not available for command: ${cmd}`));
+  }
+  return tauriInvoke<T>(cmd, args);
+}
 
 // ── Setup ────────────────────────────────────────────────────────────────────
 export const checkBinaries = () => invoke<BinaryStatus>('check_binaries');

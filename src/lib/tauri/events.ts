@@ -1,4 +1,14 @@
-import { listen } from '@tauri-apps/api/event';
+import { listen as tauriListen } from '@tauri-apps/api/event';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+
+/** Tauri webview外でも安全に呼べるlistenラッパー */
+function listen<T>(event: string, handler: (event: { payload: T }) => void): Promise<UnlistenFn> {
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+    console.warn(`[events] Tauri not available, skipping listen: ${event}`);
+    return Promise.resolve(() => {});
+  }
+  return tauriListen<T>(event, handler);
+}
 import type { JobProgress, JobResult, JobError, Job } from '@/types/job';
 import type { DownloadProgress } from '@/types/ytdlp';
 

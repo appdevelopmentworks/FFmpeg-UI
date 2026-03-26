@@ -19,12 +19,12 @@ export function useYtDlp() {
 
   const fetchInfo = useCallback(
     async (url: string) => {
-      store.setUrl(url);
-      store.setFetchState('loading');
-      store.setVideoInfo(null);
+      console.warn('[useYtDlp] fetchInfo called with:', url);
+      store.startFetch(url);
 
       try {
         const info = await fetchVideoInfo(url);
+        console.warn('[useYtDlp] fetchVideoInfo success:', info.title);
         store.setVideoInfo(info);
 
         // Auto-select best combined format
@@ -34,6 +34,7 @@ export function useYtDlp() {
         if (best) store.setSelectedFormatId(best.formatId);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        console.error('[useYtDlp] fetchVideoInfo error:', msg);
         store.setFetchError(msg);
       }
     },

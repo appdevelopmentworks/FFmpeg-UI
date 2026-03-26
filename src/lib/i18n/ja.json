@@ -19,6 +19,7 @@
     "format": "フォーマット",
     "quality": "品質",
     "download": "ダウンロード開始",
+    "bestQuality": "ベスト画質",
     "videoAndAudio": "映像+音声",
     "videoOnly": "映像のみ",
     "audioOnly": "音声のみ",
@@ -119,7 +120,12 @@
     "dropzone": "ファイルをドラッグ&ドロップ または クリックして選択",
     "addHint": "← フィルターをクリックして追加",
     "selectHint": "フィルターを選択してパラメータを編集",
-    "deleteAll": "全削除"
+    "deleteAll": "全削除",
+    "enableFilter": "有効にする",
+    "disableFilter": "無効にする",
+    "selectMediaFile": "メディアファイルを選択",
+    "selectOutputDir": "出力先フォルダを選択",
+    "mediaFiles": "メディアファイル"
   },
   "batch": {
     "dropMultiple": "複数ファイルをドラッグ&ドロップ",

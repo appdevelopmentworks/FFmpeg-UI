@@ -19,6 +19,7 @@
     "format": "Format",
     "quality": "Quality",
     "download": "Start Download",
+    "bestQuality": "Best Quality",
     "videoAndAudio": "Video + Audio",
     "videoOnly": "Video Only",
     "audioOnly": "Audio Only",
@@ -119,7 +120,12 @@
     "dropzone": "Drag & Drop file here or Click to select",
     "addHint": "← Click a filter to add",
     "selectHint": "Select a filter to edit parameters",
-    "deleteAll": "Clear All"
+    "deleteAll": "Clear All",
+    "enableFilter": "Enable",
+    "disableFilter": "Disable",
+    "selectMediaFile": "Select Media File",
+    "selectOutputDir": "Select Output Directory",
+    "mediaFiles": "Media Files"
   },
   "batch": {
     "dropMultiple": "Drag & Drop multiple files here",
