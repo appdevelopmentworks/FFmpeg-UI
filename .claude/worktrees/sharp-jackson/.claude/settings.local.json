@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Read(//c/Users/hartm/Desktop/FFmpeg-UI/**)",
+      "Bash(npx next:*)"
     ]
   }
 }

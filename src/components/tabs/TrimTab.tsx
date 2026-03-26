@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import {
@@ -14,6 +14,7 @@ import {
   Target,
 } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/Button';
 import { DropZone } from '@/components/ui/DropZone';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -52,6 +53,73 @@ function formatBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
   return `${(bytes / 1024).toFixed(0)} KB`;
+}
+
+// ── Video Preview ──────────────────────────────────────────────────────────────
+
+function VideoPreview({
+  filePath,
+  startTime,
+  endTime,
+}: {
+  filePath: string;
+  startTime: number;
+  endTime: number;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    try {
+      const src = convertFileSrc(filePath);
+      setVideoSrc(src);
+      setError(false);
+    } catch {
+      setError(true);
+    }
+  }, [filePath]);
+
+  // Seek to startTime when it changes
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v && v.readyState >= 1) {
+      v.currentTime = startTime;
+    }
+  }, [startTime]);
+
+  if (error || !videoSrc) return null;
+
+  return (
+    <div
+      className="overflow-hidden rounded-xl"
+      style={{
+        backgroundColor: 'var(--bg-secondary)',
+        border: '0.5px solid var(--border-default)',
+      }}
+    >
+      <video
+        ref={videoRef}
+        src={videoSrc}
+        controls
+        className="w-full"
+        style={{ maxHeight: '360px', backgroundColor: '#000' }}
+        onLoadedMetadata={() => {
+          const v = videoRef.current;
+          if (v) v.currentTime = startTime;
+        }}
+        onError={() => setError(true)}
+      />
+      <div className="flex items-center justify-between px-3 py-1.5">
+        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          選択範囲: {secondsToDisplay(startTime)} → {secondsToDisplay(endTime)}
+        </span>
+        <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+          {secondsToDisplay(endTime - startTime)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -172,6 +240,15 @@ export function TrimTab() {
       {/* Main content — AnimatePresence なしで直接表示 */}
       {probeState === 'ready' && mediaInfo && (
         <div className="flex flex-col gap-4">
+          {/* Video Preview */}
+          {filePath && (
+            <VideoPreview
+              filePath={filePath}
+              startTime={startTime}
+              endTime={endTime}
+            />
+          )}
+
           {/* Timeline */}
           <Timeline
             duration={mediaInfo.duration}
