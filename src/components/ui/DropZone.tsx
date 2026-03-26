@@ -25,6 +25,12 @@ function filterByExtension(paths: string[], accept?: string[]): string[] {
   return paths.filter((p) => accept.some((ext) => p.toLowerCase().endsWith(ext)));
 }
 
+/** accept配列を拡張子リスト文字列に変換 (e.g. ['.mp4', '.mkv'] → ['mp4', 'mkv']) */
+function acceptToExtensions(accept?: string[]): string[] {
+  if (!accept) return [];
+  return accept.map((ext) => ext.replace(/^\./, ''));
+}
+
 export function DropZone({
   onFileDrop,
   onDrop,
@@ -38,12 +44,13 @@ export function DropZone({
 }: DropZoneProps) {
   const tc = useTranslations('common');
   const [dragging, setDragging] = useState(false);
-  const containerRef = useRef<HTMLLabelElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
   // ── Tauri ファイルドロップイベント ─────────────────────────────────────────
   useEffect(() => {
     if (disabled || !onFileDrop) return;
-    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+    if (!isTauri) return;
 
     let unlisten: (() => void) | null = null;
 
@@ -74,7 +81,35 @@ export function DropZone({
     return () => {
       if (unlisten) unlisten();
     };
-  }, [disabled, onFileDrop, accept, multiple]);
+  }, [disabled, onFileDrop, accept, multiple, isTauri]);
+
+  // ── クリック時のファイル選択 ─────────────────────────────────────────────
+  const handleClick = useCallback(async (e: React.MouseEvent) => {
+    if (disabled) return;
+
+    // Tauri環境 + onFileDrop の場合はTauriのファイルダイアログを使う
+    if (isTauri && onFileDrop) {
+      e.preventDefault();
+      try {
+        const { open } = await import('@tauri-apps/plugin-dialog');
+        const extensions = acceptToExtensions(accept);
+        const result = await open({
+          multiple,
+          filters: extensions.length > 0
+            ? [{ name: 'Media', extensions }]
+            : undefined,
+        });
+        if (result) {
+          const paths = Array.isArray(result) ? result : [result];
+          if (paths.length > 0) onFileDrop(paths);
+        }
+      } catch (err) {
+        console.warn('[DropZone] Tauri dialog error:', err);
+      }
+      return;
+    }
+    // ブラウザ環境: input[type=file] のデフォルト動作に任せる（labelのクリック）
+  }, [disabled, isTauri, onFileDrop, accept, multiple]);
 
   // ── HTML5 フォールバック（ブラウザ用） ────────────────────────────────────
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -94,7 +129,7 @@ export function DropZone({
     if (disabled) return;
 
     // Tauri環境ではonDragDropEventで処理するのでスキップ
-    if ('__TAURI_INTERNALS__' in window && onFileDrop) return;
+    if (isTauri && onFileDrop) return;
 
     if (onDrop) {
       const items = Array.from(e.dataTransfer.files);
@@ -103,19 +138,18 @@ export function DropZone({
         : items;
       if (filtered.length) onDrop(filtered);
     }
-  }, [onDrop, onFileDrop, accept, disabled]);
+  }, [onDrop, onFileDrop, accept, disabled, isTauri]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const items = Array.from(e.target.files ?? []);
     if (items.length) {
       if (onDrop) onDrop(items);
-      // input[type=file] からはフルパスが取れないので onFileDrop は使わない
     }
     e.target.value = '';
   }, [onDrop]);
 
   return (
-    <motion.label
+    <motion.div
       ref={containerRef}
       className={`relative flex flex-col items-center justify-center gap-3 rounded-xl cursor-pointer select-none overflow-hidden ${className}`}
       style={{
@@ -126,20 +160,26 @@ export function DropZone({
         opacity: disabled ? 0.45 : 1,
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}
+      onClick={handleClick}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       animate={{ scale: dragging ? 1.01 : 1 }}
       transition={{ duration: 0.15 }}
     >
-      <input
-        type="file"
-        className="sr-only"
-        multiple={multiple}
-        accept={accept?.join(',')}
-        disabled={disabled}
-        onChange={handleChange}
-      />
+      {/* ブラウザ環境用の隠しinput（Tauri環境ではダイアログを使うので不要） */}
+      {!isTauri && (
+        <label className="absolute inset-0 cursor-pointer">
+          <input
+            type="file"
+            className="sr-only"
+            multiple={multiple}
+            accept={accept?.join(',')}
+            disabled={disabled}
+            onChange={handleChange}
+          />
+        </label>
+      )}
 
       <AnimatePresence mode="wait">
         {dragging ? (
@@ -182,6 +222,6 @@ export function DropZone({
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.label>
+    </motion.div>
   );
 }
