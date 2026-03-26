@@ -33,7 +33,7 @@
 - [x] `npm run build` でビルド成功確認
 
 ### Task 0-2: デザインシステム構築 ✅
-- [x] Google Fonts インポート（Noto Sans JP + Inter + JetBrains Mono）
+- [x] ~~Google Fonts インポート~~ → システムフォント (Segoe UI / Meiryo) に変更済み
 - [x] globals.css 拡充（CSS変数・フォーカスリング・スクロールバー）
 - [x] アニメーション定数（src/lib/animations.ts）
 - [x] **共通UIコンポーネント（src/components/ui/）**
@@ -97,7 +97,9 @@
     - [x] URL入力（ペースト検知で自動取得開始）
     - [x] ローディングスケルトンUI
     - [x] メディア情報カード（サムネイル + メタ情報）
-    - [x] SegmentedControl（映像+音声 / 映像のみ / 音声のみ）
+    - [x] URLからサムネイルプレビュー即時表示（ネットワーク不通時フォールバックUI付き）
+    - [x] SegmentedControl（ベスト画質 / 映像+音声 / 映像のみ / 音声のみ）
+    - [x] 「ベスト画質」モード（映像+bestaudio 自動マージ、1080p等の高解像度対応）
     - [x] 品質リスト（利用可能フォーマット動的表示）
     - [x] ダウンロードボタン + 進捗バー
     - [x] 出力先フォルダ選択
@@ -244,7 +246,9 @@
   - [x] アプリアイコン作成（`cargo tauri icon` で生成済み）
   - [x] tauri.conf.json バンドル設定（`targets: "all"` 設定済み）
   - [ ] `cargo tauri build` でWindows向けビルド確認（ユーザー実施）
-- [ ] README.md 作成
+- [x] README.md 作成
+- [x] Tauri invoke/listen 安全ガード追加（ブラウザ直接アクセス時のクラッシュ防止）
+- [x] Framer Motion Variants の適用方法修正（{...fadeIn} → variants prop）
 
 ---
 
