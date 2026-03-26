@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Layers,
+  X,
 } from 'lucide-react';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { Button } from '@/components/ui/Button';
@@ -19,6 +20,7 @@ import { DropZone } from '@/components/ui/DropZone';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Select } from '@/components/ui/Select';
 import { useExtract } from '@/hooks/useExtract';
+import { useExtractStore } from '@/stores/extractStore';
 import type { StreamInfo } from '@/types/media';
 import { fadeIn, slideUp } from '@/lib/animations';
 
@@ -123,19 +125,12 @@ export function ExtractTab() {
   const hasError = job.status === 'error';
   const selectedCount = selections.filter((s) => s.selected).length;
 
+  const { reset: resetStore } = useExtractStore();
+
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-6">
-      {/* Drop zone */}
-      {probeState === 'idle' || probeState === 'error' ? (
-        <DropZone
-          multiple={false}
-          onFileDrop={handleFileDrop}
-          accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
-          label={t('dropzone')}
-          sublabel="mp4, mkv, avi, mov, webm, flv, ts"
-          className="py-8"
-        />
-      ) : (
+      {/* Drop zone — ready時はコンパクト、それ以外は大きく表示 */}
+      {probeState === 'ready' && mediaInfo ? (
         <motion.div
           {...fadeIn}
           className="flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer"
@@ -147,32 +142,47 @@ export function ExtractTab() {
           <span className="flex-1 truncate text-sm" style={{ color: 'var(--text-primary)' }}>
             {filePath.split(/[/\\]/).pop()}
           </span>
-        </motion.div>
-      )}
-
-      {/* Error */}
-      <AnimatePresence>
-        {probeState === 'error' && probeError && (
-          <motion.div
-            {...fadeIn}
-            className="flex items-start gap-3 rounded-xl px-4 py-3"
-            style={{ backgroundColor: 'rgba(239,71,111,0.08)', border: '0.5px solid var(--status-error)' }}
+          <button
+            onClick={(e) => { e.stopPropagation(); resetStore(); }}
+            className="ml-1 rounded p-1 transition-colors hover:bg-white/10"
           >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--status-error)' }} />
-            <p className="text-sm" style={{ color: 'var(--status-error)' }}>{probeError}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Loading */}
-      <AnimatePresence>
-        {probeState === 'loading' && (
-          <motion.div {...fadeIn} className="flex items-center justify-center gap-2 py-6">
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: 'var(--accent-cyan)' }} />
-            <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>{tc('loading')}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <X className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
+          </button>
+        </motion.div>
+      ) : (
+        <>
+          <DropZone
+            multiple={false}
+            onFileDrop={handleFileDrop}
+            accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
+            label={probeState === 'loading' ? tc('loading') : t('dropzone')}
+            sublabel="mp4, mkv, avi, mov, webm, flv, ts"
+            className="py-8"
+            disabled={probeState === 'loading'}
+            icon={probeState === 'loading'
+              ? <Loader2 size={20} className="animate-spin" style={{ color: 'var(--accent-cyan)' }} />
+              : undefined
+            }
+          />
+          {/* Error */}
+          {probeState === 'error' && probeError && (
+            <div
+              className="flex items-start gap-3 rounded-xl px-4 py-3"
+              style={{ backgroundColor: 'rgba(239,71,111,0.08)', border: '0.5px solid var(--status-error)' }}
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--status-error)' }} />
+              <p className="flex-1 text-sm" style={{ color: 'var(--status-error)' }}>{probeError}</p>
+              <button
+                onClick={resetStore}
+                className="rounded px-2 py-1 text-xs transition-colors hover:bg-white/10"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {tc('reset')}
+              </button>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Stream list */}
       <AnimatePresence>
