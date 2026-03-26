@@ -120,37 +120,43 @@ export function TrimTab() {
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-6">
-      {/* ── ファイル選択エリア ─────────────────────────────────────────────── */}
-      <div
-        className="flex items-center gap-3 rounded-xl px-4 py-4 cursor-pointer transition-colors"
-        style={{
-          backgroundColor: 'var(--bg-secondary)',
-          border: '0.5px solid var(--border-default)',
-        }}
-        onClick={handleChooseFile}
-      >
-        {probeState === 'loading' ? (
-          <Loader2 className="h-5 w-5 animate-spin shrink-0" style={{ color: 'var(--accent-cyan)' }} />
-        ) : (
-          <FolderOpen className="h-5 w-5 shrink-0" style={{ color: 'var(--accent-cyan)' }} />
-        )}
-        <span className="flex-1 truncate text-sm" style={{ color: filePath ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-          {filePath ? filePath.split(/[/\\]/).pop() : tc('dragOrClick')}
-        </span>
-        {mediaInfo && (
-          <span className="text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>
-            {secondsToDisplay(mediaInfo.duration).slice(0, 5)} &nbsp; {formatBytes(mediaInfo.size)}
+      {/* ── DropZone / ファイル情報 ───────────────────────────────────────── */}
+      {!filePath || probeState === 'idle' ? (
+        <DropZone
+          multiple={false}
+          onFileDrop={handleFileDrop}
+          accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
+          label={tc('dragOrClick')}
+          sublabel="mp4, mkv, avi, mov, webm, flv, ts"
+          className="py-8"
+        />
+      ) : (
+        <div
+          className="flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}
+          onClick={handleChooseFile}
+        >
+          {probeState === 'loading' ? (
+            <Loader2 className="h-4 w-4 animate-spin shrink-0" style={{ color: 'var(--accent-cyan)' }} />
+          ) : (
+            <FolderOpen className="h-4 w-4 shrink-0" style={{ color: 'var(--accent-cyan)' }} />
+          )}
+          <span className="flex-1 truncate text-sm" style={{ color: 'var(--text-primary)' }}>
+            {filePath.split(/[/\\]/).pop()}
           </span>
-        )}
-        {filePath && (
+          {mediaInfo && (
+            <span className="text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+              {secondsToDisplay(mediaInfo.duration).slice(0, 5)} &nbsp; {formatBytes(mediaInfo.size)}
+            </span>
+          )}
           <button
             onClick={(e) => { e.stopPropagation(); resetStore(); }}
             className="ml-1 rounded p-1 transition-colors hover:bg-white/10"
           >
             <X className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Error */}
       {probeState === 'error' && probeError && (
@@ -163,143 +169,133 @@ export function TrimTab() {
         </div>
       )}
 
-      {/* Main content */}
-      <AnimatePresence>
-        {probeState === 'ready' && mediaInfo && (
-          <motion.div {...slideUp} className="flex flex-col gap-4">
-            {/* Timeline */}
-            <Timeline
-              duration={mediaInfo.duration}
-              startTime={startTime}
-              endTime={endTime}
-              thumbnails={thumbnails}
-              onStartChange={setStartTime}
-              onEndChange={setEndTime}
+      {/* Main content — AnimatePresence なしで直接表示 */}
+      {probeState === 'ready' && mediaInfo && (
+        <div className="flex flex-col gap-4">
+          {/* Timeline */}
+          <Timeline
+            duration={mediaInfo.duration}
+            startTime={startTime}
+            endTime={endTime}
+            thumbnails={thumbnails}
+            onStartChange={setStartTime}
+            onEndChange={setEndTime}
+          />
+
+          {/* Time inputs */}
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label={t('start')}
+              value={startInput}
+              onChange={(e) => setStartInput(e.target.value)}
+              onBlur={handleStartBlur}
+              onKeyDown={(e) => e.key === 'Enter' && handleStartBlur()}
+              style={{ fontFamily: 'var(--font-jetbrains, monospace)' }}
             />
+            <Input
+              label={t('end')}
+              value={endInput}
+              onChange={(e) => setEndInput(e.target.value)}
+              onBlur={handleEndBlur}
+              onKeyDown={(e) => e.key === 'Enter' && handleEndBlur()}
+              style={{ fontFamily: 'var(--font-jetbrains, monospace)' }}
+            />
+          </div>
 
-            {/* Time inputs */}
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                label={t('start')}
-                value={startInput}
-                onChange={(e) => setStartInput(e.target.value)}
-                onBlur={handleStartBlur}
-                onKeyDown={(e) => e.key === 'Enter' && handleStartBlur()}
-                style={{ fontFamily: 'var(--font-jetbrains, monospace)' }}
-              />
-              <Input
-                label={t('end')}
-                value={endInput}
-                onChange={(e) => setEndInput(e.target.value)}
-                onBlur={handleEndBlur}
-                onKeyDown={(e) => e.key === 'Enter' && handleEndBlur()}
-                style={{ fontFamily: 'var(--font-jetbrains, monospace)' }}
-              />
+          {/* Cut mode */}
+          <div
+            className="flex flex-col gap-2 rounded-xl p-4"
+            style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}
+          >
+            <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('cutMode')}</p>
+            {[
+              { value: false, icon: <Zap className="h-3.5 w-3.5" />, label: t('fastCut') },
+              { value: true,  icon: <Target className="h-3.5 w-3.5" />, label: t('accurateCut') },
+            ].map(({ value, icon, label }) => (
+              <button
+                key={String(value)}
+                onClick={() => setAccurate(value)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-left transition-colors"
+                style={{
+                  backgroundColor: accurate === value ? 'rgba(6,214,160,0.08)' : 'transparent',
+                  color: accurate === value ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                  border: `0.5px solid ${accurate === value ? 'var(--accent-cyan)' : 'transparent'}`,
+                }}
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Output path */}
+          <div className="flex items-center gap-2">
+            <Input
+              label={t('outputPath')}
+              value={outputPath}
+              onChange={(e) => setOutputPath(e.target.value)}
+              className="flex-1"
+            />
+            <div className="mt-5">
+              <Button variant="secondary" size="sm" onClick={handleChooseOutput}>
+                {tc('change')}
+              </Button>
             </div>
+          </div>
 
-            {/* Cut mode */}
-            <div
-              className="flex flex-col gap-2 rounded-xl p-4"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}
-            >
-              <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('cutMode')}</p>
-              {[
-                { value: false, icon: <Zap className="h-3.5 w-3.5" />, label: t('fastCut') },
-                { value: true,  icon: <Target className="h-3.5 w-3.5" />, label: t('accurateCut') },
-              ].map(({ value, icon, label }) => (
-                <button
-                  key={String(value)}
-                  onClick={() => setAccurate(value)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-left transition-colors"
-                  style={{
-                    backgroundColor: accurate === value ? 'rgba(6,214,160,0.08)' : 'transparent',
-                    color: accurate === value ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                    border: `0.5px solid ${accurate === value ? 'var(--accent-cyan)' : 'transparent'}`,
-                  }}
-                >
-                  {icon}
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* Output path */}
-            <div className="flex items-center gap-2">
-              <Input
-                label={t('outputPath')}
-                value={outputPath}
-                onChange={(e) => setOutputPath(e.target.value)}
-                className="flex-1"
-              />
-              <div className="mt-5">
-                <Button variant="secondary" size="sm" onClick={handleChooseOutput}>
-                  {tc('change')}
-                </Button>
-              </div>
-            </div>
-
-            {/* Execute button */}
-            <Button
-              variant="primary"
-              size="lg"
-              icon={<Scissors className="h-4 w-4" />}
-              loading={isRunning}
-              disabled={isRunning || !outputPath}
-              onClick={executeTrim}
-            >
+          {/* Execute button */}
+          <Button
+            variant="primary"
+            size="lg"
+            icon={<Scissors className="h-4 w-4" />}
+            loading={isRunning}
+            disabled={isRunning || !outputPath}
+            onClick={executeTrim}
+          >
               {t('execute')}
             </Button>
 
-            {/* Progress */}
-            <AnimatePresence>
-              {(isRunning || isComplete || hasError) && (
-                <motion.div
-                  {...slideUp}
-                  className="flex flex-col gap-3 rounded-xl p-4"
-                  style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    border: `0.5px solid ${hasError ? 'var(--status-error)' : isComplete ? 'var(--status-success)' : 'var(--border-default)'}`,
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {isComplete && <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--status-success)' }} />}
-                      {hasError && <AlertCircle className="h-4 w-4" style={{ color: 'var(--status-error)' }} />}
-                      {isRunning && <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--accent-cyan)' }} />}
-                      <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {isComplete ? t('complete') : hasError ? job.error : t('running')}
-                      </span>
-                    </div>
-                    {isRunning && (
-                      <button onClick={() => {}}>
-                        <X className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
-                      </button>
-                    )}
-                  </div>
+          {/* Progress */}
+          {(isRunning || isComplete || hasError) && (
+            <div
+              className="flex flex-col gap-3 rounded-xl p-4"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: `0.5px solid ${hasError ? 'var(--status-error)' : isComplete ? 'var(--status-success)' : 'var(--border-default)'}`,
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {isComplete && <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--status-success)' }} />}
+                  {hasError && <AlertCircle className="h-4 w-4" style={{ color: 'var(--status-error)' }} />}
+                  {isRunning && <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--accent-cyan)' }} />}
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {isComplete ? t('complete') : hasError ? job.error : t('running')}
+                  </span>
+                </div>
+              </div>
 
-                  {(isRunning || isComplete) && (
-                    <ProgressBar value={job.percent} animated={isRunning} />
-                  )}
-
-                  {isRunning && (
-                    <div className="flex gap-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                      <span>{job.percent.toFixed(1)}%</span>
-                      {job.speed && <span>{job.speed}</span>}
-                      {job.eta && <span>{tc('remaining')} {job.eta}</span>}
-                    </div>
-                  )}
-
-                  {isComplete && job.outputPath && (
-                    <p className="truncate text-xs" style={{ color: 'var(--text-secondary)' }}>
-                      {job.outputPath}
-                    </p>
-                  )}
-                </motion.div>
+              {(isRunning || isComplete) && (
+                <ProgressBar value={job.percent} animated={isRunning} />
               )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+              {isRunning && (
+                <div className="flex gap-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  <span>{job.percent.toFixed(1)}%</span>
+                  {job.speed && <span>{job.speed}</span>}
+                  {job.eta && <span>{tc('remaining')} {job.eta}</span>}
+                </div>
+              )}
+
+              {isComplete && job.outputPath && (
+                <p className="truncate text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {job.outputPath}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
