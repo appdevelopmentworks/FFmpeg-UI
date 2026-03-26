@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -115,7 +115,31 @@ export function BatchTab() {
     }
   };
 
-  // ── Drag & Drop ─────────────────────────────────────────────────────────────
+  // ── Drag & Drop (Tauri event) ───────────────────────────────────────────────
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        const webview = getCurrentWebview();
+        unlisten = await webview.onDragDropEvent((event) => {
+          if (event.payload.type === 'enter') setIsDragOver(true);
+          else if (event.payload.type === 'leave') setIsDragOver(false);
+          else if (event.payload.type === 'drop') {
+            setIsDragOver(false);
+            const mediaExts = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.mp3', '.wav', '.flac', '.aac', '.m4a'];
+            const paths = event.payload.paths.filter((p: string) =>
+              mediaExts.some((ext) => p.toLowerCase().endsWith(ext))
+            );
+            if (paths.length > 0) ingestPaths(paths);
+          }
+        });
+      } catch { /* not in Tauri */ }
+    })();
+    return () => { if (unlisten) unlisten(); };
+  }, [ingestPaths]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -127,11 +151,8 @@ export function BatchTab() {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    const paths: string[] = [];
-    for (const item of Array.from(e.dataTransfer.files)) {
-      paths.push(item.name); // in Tauri context this is the full path
-    }
-    if (paths.length > 0) await ingestPaths(paths);
+    // Tauri環境ではonDragDropEventで処理するのでスキップ
+    if ('__TAURI_INTERNALS__' in window) return;
   };
 
   // ── Execute ─────────────────────────────────────────────────────────────────

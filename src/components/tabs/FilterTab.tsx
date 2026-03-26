@@ -342,6 +342,31 @@ export function FilterTab() {
   const selectedApplied = filters.find((f) => f.instanceId === selectedInstanceId);
   const selectedDef = selectedApplied ? getFilterById(selectedApplied.filterId) : undefined;
 
+  // ── Tauri drag-drop event ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+    let unlisten: (() => void) | null = null;
+    (async () => {
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        const webview = getCurrentWebview();
+        unlisten = await webview.onDragDropEvent((event) => {
+          if (event.payload.type === 'enter') setIsDragOver(true);
+          else if (event.payload.type === 'leave') setIsDragOver(false);
+          else if (event.payload.type === 'drop') {
+            setIsDragOver(false);
+            const mediaExts = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.mp3', '.wav', '.flac'];
+            const paths = event.payload.paths.filter((p: string) =>
+              mediaExts.some((ext) => p.toLowerCase().endsWith(ext))
+            );
+            if (paths.length > 0) handleFileDrop(paths);
+          }
+        });
+      } catch { /* not in Tauri */ }
+    })();
+    return () => { if (unlisten) unlisten(); };
+  }, []);
+
   // Update command preview whenever filter chain changes
   useEffect(() => {
     if (!inputFile) {
@@ -393,13 +418,17 @@ export function FilterTab() {
     }
   };
 
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0 && files[0]) {
-      setInputFile(files[0].name);
-      setOutputFilename(files[0].name.replace(/\.[^.]+$/, '') + '_filtered');
+  const handleFileDrop = async (paths: string[]) => {
+    const p = paths[0];
+    if (!p) return;
+    setInputFile(p);
+    const fname = p.replace(/\\/g, '/').split('/').pop() ?? p;
+    setOutputFilename(fname.replace(/\.[^.]+$/, '') + '_filtered');
+    try {
+      const info = await probeMedia(p);
+      setMediaInfo(info);
+    } catch {
+      // ignore
     }
   };
 
@@ -476,7 +505,7 @@ export function FilterTab() {
           }}
           onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
           onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
+          onDrop={(e) => { e.preventDefault(); setIsDragOver(false); }}
           onClick={handleSelectFile}
         >
           <Upload className="h-5 w-5 shrink-0" style={{ color: inputFile ? 'var(--accent-cyan)' : 'var(--text-tertiary)' }} />

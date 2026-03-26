@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FolderOpen } from 'lucide-react';
 
 export interface DropZoneProps {
-  onDrop:      (files: File[]) => void;
+  /** Tauri用: フルパス文字列の配列を受け取るコールバック（推奨） */
+  onFileDrop?:  (paths: string[]) => void;
+  /** HTML5フォールバック: File オブジェクトの配列を受け取るコールバック */
+  onDrop?:      (files: File[]) => void;
   accept?:     string[];           // e.g. ['.mp4', '.mkv']
   multiple?:   boolean;
   label?:      string;
@@ -16,7 +19,14 @@ export interface DropZoneProps {
   disabled?:   boolean;
 }
 
+/** ファイル拡張子でフィルタする */
+function filterByExtension(paths: string[], accept?: string[]): string[] {
+  if (!accept || accept.length === 0) return paths;
+  return paths.filter((p) => accept.some((ext) => p.toLowerCase().endsWith(ext)));
+}
+
 export function DropZone({
+  onFileDrop,
   onDrop,
   accept,
   multiple = true,
@@ -28,7 +38,45 @@ export function DropZone({
 }: DropZoneProps) {
   const tc = useTranslations('common');
   const [dragging, setDragging] = useState(false);
+  const containerRef = useRef<HTMLLabelElement>(null);
 
+  // ── Tauri ファイルドロップイベント ─────────────────────────────────────────
+  useEffect(() => {
+    if (disabled || !onFileDrop) return;
+    if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return;
+
+    let unlisten: (() => void) | null = null;
+
+    (async () => {
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        const webview = getCurrentWebview();
+        unlisten = await webview.onDragDropEvent((event) => {
+          if (event.payload.type === 'enter') {
+            setDragging(true);
+          } else if (event.payload.type === 'leave') {
+            setDragging(false);
+          } else if (event.payload.type === 'drop') {
+            setDragging(false);
+            const paths = event.payload.paths;
+            const filtered = filterByExtension(paths, accept);
+            const result = multiple ? filtered : filtered.slice(0, 1);
+            if (result.length > 0) {
+              onFileDrop(result);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('[DropZone] Tauri drag-drop not available:', err);
+      }
+    })();
+
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, [disabled, onFileDrop, accept, multiple]);
+
+  // ── HTML5 フォールバック（ブラウザ用） ────────────────────────────────────
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     if (!disabled) setDragging(true);
@@ -45,21 +93,30 @@ export function DropZone({
     setDragging(false);
     if (disabled) return;
 
-    const items = Array.from(e.dataTransfer.files);
-    const filtered = accept
-      ? items.filter((f) => accept.some((ext) => f.name.toLowerCase().endsWith(ext)))
-      : items;
-    if (filtered.length) onDrop(filtered);
-  }, [onDrop, accept, disabled]);
+    // Tauri環境ではonDragDropEventで処理するのでスキップ
+    if ('__TAURI_INTERNALS__' in window && onFileDrop) return;
+
+    if (onDrop) {
+      const items = Array.from(e.dataTransfer.files);
+      const filtered = accept
+        ? items.filter((f) => accept.some((ext) => f.name.toLowerCase().endsWith(ext)))
+        : items;
+      if (filtered.length) onDrop(filtered);
+    }
+  }, [onDrop, onFileDrop, accept, disabled]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const items = Array.from(e.target.files ?? []);
-    if (items.length) onDrop(items);
+    if (items.length) {
+      if (onDrop) onDrop(items);
+      // input[type=file] からはフルパスが取れないので onFileDrop は使わない
+    }
     e.target.value = '';
   }, [onDrop]);
 
   return (
     <motion.label
+      ref={containerRef}
       className={`relative flex flex-col items-center justify-center gap-3 rounded-xl cursor-pointer select-none overflow-hidden ${className}`}
       style={{
         minHeight: 120,

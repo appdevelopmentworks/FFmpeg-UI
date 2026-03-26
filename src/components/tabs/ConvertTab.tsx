@@ -174,17 +174,14 @@ export function ConvertTab() {
     return estimateSize(duration, vbps, abps, ffmpegCmd.crf, ffmpegCmd.videoCodec);
   }, [state, ffmpegCmd]);
 
-  // Handle file drop
-  const handleDrop = useCallback(async (files: File[]) => {
-    const file = files[0];
-    if (!file) return;
+  // Handle file drop (Tauri: フルパス配列)
+  const handleFileDrop = useCallback(async (paths: string[]) => {
+    const filePath = paths[0];
+    if (!filePath) return;
     setError(null);
 
-    // Extract path from file.path (Tauri provides this)
-    const filePath = (file as File & { path?: string }).path ?? file.name;
-
-    // Derive output filename
-    const stem = file.name.replace(/\.[^/.]+$/, '');
+    const name = filePath.split(/[/\\]/).pop() ?? filePath;
+    const stem = name.replace(/\.[^/.]+$/, '');
     setState((prev) => ({
       ...prev,
       inputPath: filePath,
@@ -192,7 +189,6 @@ export function ConvertTab() {
       outputFilename: `${stem}_converted.${prev.container}`,
     }));
 
-    // Probe media info
     try {
       const { probeMedia } = await import('@/lib/tauri/commands');
       const info = await probeMedia(filePath);
@@ -300,7 +296,7 @@ export function ConvertTab() {
       {/* ── DropZone ─────────────────────────────────────────────────────── */}
       {!state.inputPath ? (
         <DropZone
-          onDrop={handleDrop}
+          onFileDrop={handleFileDrop}
           accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
           multiple={false}
           label={t('dropzone')}

@@ -93,13 +93,9 @@ export function ExtractTab() {
     loadFile, executeExtract,
   } = useExtract();
 
-  const getFilePath = useCallback((file: File) => {
-    return (file as File & { path?: string }).path ?? file.name;
-  }, []);
-
-  const handleDrop = useCallback(async (files: File[]) => {
-    if (files[0]) loadFile(getFilePath(files[0]));
-  }, [loadFile, getFilePath]);
+  const handleFileDrop = useCallback(async (paths: string[]) => {
+    if (paths[0]) loadFile(paths[0]);
+  }, [loadFile]);
 
   const handleChooseFile = useCallback(async () => {
     try {
@@ -133,7 +129,7 @@ export function ExtractTab() {
       {probeState === 'idle' || probeState === 'error' ? (
         <DropZone
           multiple={false}
-          onDrop={handleDrop}
+          onFileDrop={handleFileDrop}
           accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
           label={t('dropzone')}
           sublabel="mp4, mkv, avi, mov, webm, flv, ts"

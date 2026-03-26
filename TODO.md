@@ -191,6 +191,7 @@
   - [x] パラメータ調整パネル（number/select/boolean 動的生成）
   - [x] コマンドプレビュー（リアルタイム生成）
   - [x] 適用ボタン（executeFFmpeg 呼び出し）
+- [x] 全タブのドラッグ&ドロップをTauri `onDragDropEvent` API対応に修正
 - [ ] Before/After Split View プレビュー（未実装）
 - [ ] Rust側: apply_filter_preview コマンド（未実装）
 
