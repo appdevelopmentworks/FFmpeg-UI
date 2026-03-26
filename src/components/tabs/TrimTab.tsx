@@ -120,62 +120,47 @@ export function TrimTab() {
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-6">
-      {/* Drop zone — idle/error/loading時は大きく表示、ready時はコンパクト */}
-      {probeState === 'ready' && mediaInfo ? (
-        <motion.div
-          {...fadeIn}
-          className="flex items-center gap-3 rounded-xl px-4 py-3 cursor-pointer"
-          style={{ backgroundColor: 'var(--bg-secondary)', border: '0.5px solid var(--border-default)' }}
-          onClick={handleChooseFile}
-          whileHover={{ opacity: 0.85 }}
-        >
-          <FolderOpen className="h-4 w-4 shrink-0" style={{ color: 'var(--accent-cyan)' }} />
-          <span className="flex-1 truncate text-sm" style={{ color: 'var(--text-primary)' }}>
-            {filePath.split(/[/\\]/).pop()}
-          </span>
+      {/* ── ファイル選択エリア ─────────────────────────────────────────────── */}
+      <div
+        className="flex items-center gap-3 rounded-xl px-4 py-4 cursor-pointer transition-colors"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          border: '0.5px solid var(--border-default)',
+        }}
+        onClick={handleChooseFile}
+      >
+        {probeState === 'loading' ? (
+          <Loader2 className="h-5 w-5 animate-spin shrink-0" style={{ color: 'var(--accent-cyan)' }} />
+        ) : (
+          <FolderOpen className="h-5 w-5 shrink-0" style={{ color: 'var(--accent-cyan)' }} />
+        )}
+        <span className="flex-1 truncate text-sm" style={{ color: filePath ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+          {filePath ? filePath.split(/[/\\]/).pop() : tc('dragOrClick')}
+        </span>
+        {mediaInfo && (
           <span className="text-xs shrink-0" style={{ color: 'var(--text-tertiary)' }}>
             {secondsToDisplay(mediaInfo.duration).slice(0, 5)} &nbsp; {formatBytes(mediaInfo.size)}
           </span>
+        )}
+        {filePath && (
           <button
             onClick={(e) => { e.stopPropagation(); resetStore(); }}
             className="ml-1 rounded p-1 transition-colors hover:bg-white/10"
           >
             <X className="h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
           </button>
-        </motion.div>
-      ) : (
-        <>
-          <DropZone
-            multiple={false}
-            onFileDrop={handleFileDrop}
-            accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
-            label={probeState === 'loading' ? tc('loading') : tc('dragOrClick')}
-            sublabel="mp4, mkv, avi, mov, webm, flv, ts"
-            className="py-8"
-            disabled={probeState === 'loading'}
-            icon={probeState === 'loading'
-              ? <Loader2 size={20} className="animate-spin" style={{ color: 'var(--accent-cyan)' }} />
-              : undefined
-            }
-          />
-          {/* Error */}
-          {probeState === 'error' && probeError && (
-            <div
-              className="flex items-start gap-3 rounded-xl px-4 py-3"
-              style={{ backgroundColor: 'rgba(239,71,111,0.08)', border: '0.5px solid var(--status-error)' }}
-            >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--status-error)' }} />
-              <p className="flex-1 text-sm" style={{ color: 'var(--status-error)' }}>{probeError}</p>
-              <button
-                onClick={resetStore}
-                className="rounded px-2 py-1 text-xs transition-colors hover:bg-white/10"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                {tc('reset')}
-              </button>
-            </div>
-          )}
-        </>
+        )}
+      </div>
+
+      {/* Error */}
+      {probeState === 'error' && probeError && (
+        <div
+          className="flex items-start gap-3 rounded-xl px-4 py-3"
+          style={{ backgroundColor: 'rgba(239,71,111,0.08)', border: '0.5px solid var(--status-error)' }}
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--status-error)' }} />
+          <p className="flex-1 text-sm" style={{ color: 'var(--status-error)' }}>{probeError}</p>
+        </div>
       )}
 
       {/* Main content */}
