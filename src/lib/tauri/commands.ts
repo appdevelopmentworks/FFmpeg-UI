@@ -77,6 +77,9 @@ export const extractStreams = (params: ExtractParams) =>
 export const trimMedia = (params: TrimParams) =>
   invoke<string>('trim_media', { ...params });
 
+export const mergeMedia = (params: { inputPaths: string[]; outputPath: string }) =>
+  invoke<string>('merge_media', { ...params });
+
 export const detectHwEncoders = () => invoke<HWEncoder[]>('detect_hw_encoders');
 
 export const buildCommandPreview = (command: FFmpegCommand) =>

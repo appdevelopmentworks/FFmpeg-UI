@@ -3,6 +3,7 @@ export type TabId =
   | 'youtube'
   | 'convert'
   | 'trim'
+  | 'merge'
   | 'extract'
   | 'filter'
   | 'batch'

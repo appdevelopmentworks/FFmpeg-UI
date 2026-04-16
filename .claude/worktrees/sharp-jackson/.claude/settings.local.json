@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npm run:*)",
       "Read(//c/Users/hartm/Desktop/FFmpeg-UI/**)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "mcp__claude_code__Glob",
+      "mcp__ripgrep__list-files",
+      "Bash(cargo check:*)",
+      "Bash(cargo clean:*)"
     ]
   }
 }

@@ -21,7 +21,11 @@
       "Bash(where yt-dlp:*)",
       "Bash(where ffmpeg:*)",
       "Bash(yt-dlp:*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__filesystem__list_allowed_directories",
+      "mcp__claude_code__Bash",
+      "mcp__filesystem__list_directory",
+      "Bash(cargo clean:*)"
     ]
   }
 }

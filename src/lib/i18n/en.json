@@ -7,6 +7,7 @@
     "youtube": "YouTube",
     "convert": "Convert",
     "trim": "Trim",
+    "merge": "Merge",
     "extract": "Extract",
     "filter": "Filter",
     "batch": "Batch",
@@ -79,6 +80,22 @@
     "complete": "Cut complete",
     "running": "Cutting...",
     "outputPath": "Output Path"
+  },
+  "merge": {
+    "dropzone": "Drag & drop files to merge, or click to select",
+    "fileList": "File List",
+    "addFile": "Add File",
+    "removeFile": "Remove",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
+    "totalDuration": "Total Duration",
+    "totalSize": "Total Size",
+    "fileCount": "Files",
+    "outputPath": "Output Path",
+    "execute": "Merge",
+    "complete": "Merge complete",
+    "running": "Merging...",
+    "minFiles": "Add at least 2 files to merge"
   },
   "extract": {
     "streams": "Stream List",

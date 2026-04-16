@@ -31,6 +31,7 @@ pub fn run() {
             commands::ffmpeg::generate_thumbnails,
             commands::ffmpeg::generate_waveform,
             commands::ffmpeg::trim_media,
+            commands::ffmpeg::merge_media,
             commands::ffmpeg::extract_streams,
             commands::ffmpeg::execute_ffmpeg,
             commands::ffmpeg::execute_raw_command,

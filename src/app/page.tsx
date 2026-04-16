@@ -6,6 +6,7 @@ import { JobQueueFooter } from '@/components/layout/JobQueueFooter';
 import { YouTubeTab } from '@/components/tabs/YouTubeTab';
 import { ConvertTab } from '@/components/tabs/ConvertTab';
 import { TrimTab } from '@/components/tabs/TrimTab';
+import { MergeTab } from '@/components/tabs/MergeTab';
 import { ExtractTab } from '@/components/tabs/ExtractTab';
 import { FilterTab } from '@/components/tabs/FilterTab';
 import { BatchTab } from '@/components/tabs/BatchTab';
@@ -19,6 +20,7 @@ const TAB_CONTENT = {
   youtube: YouTubeTab,
   convert: ConvertTab,
   trim: TrimTab,
+  merge: MergeTab,
   extract: ExtractTab,
   filter: FilterTab,
   batch: BatchTab,

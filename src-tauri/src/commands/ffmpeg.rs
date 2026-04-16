@@ -121,6 +121,51 @@ pub async fn extract_streams(
     Ok(job_id)
 }
 
+// ── merge_media ──────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub async fn merge_media(
+    app: AppHandle,
+    queue: State<'_, JobQueue>,
+    input_paths: Vec<String>,
+    output_path: String,
+) -> Result<String, String> {
+    if input_paths.len() < 2 {
+        return Err("結合には2つ以上のファイルが必要です".to_string());
+    }
+
+    let job_id = uuid::Uuid::new_v4().to_string();
+    let label = input_paths.first().cloned().unwrap_or_default();
+
+    let cancel_rx = queue
+        .add_job(&job_id, JobType::Convert, &label, &output_path)
+        .await;
+
+    queue.emit_queue_updated(&app).await;
+
+    let queue_clone = queue.inner().clone();
+    let app_clone = app.clone();
+    let job_id_clone = job_id.clone();
+
+    tokio::spawn(async move {
+        match ffmpeg_service::merge_media(
+            app_clone.clone(),
+            job_id_clone.clone(),
+            input_paths,
+            output_path,
+            cancel_rx,
+        )
+        .await
+        {
+            Ok(out) => queue_clone.complete_job(&job_id_clone, &out).await,
+            Err(e) => queue_clone.fail_job(&job_id_clone, &e.to_string()).await,
+        }
+        queue_clone.emit_queue_updated(&app_clone).await;
+    });
+
+    Ok(job_id)
+}
+
 // ── execute_ffmpeg ────────────────────────────────────────────────────────────
 
 #[tauri::command]

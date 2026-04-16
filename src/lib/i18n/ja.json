@@ -7,6 +7,7 @@
     "youtube": "YouTube",
     "convert": "変換",
     "trim": "カット",
+    "merge": "結合",
     "extract": "分離",
     "filter": "フィルター",
     "batch": "バッチ",
@@ -79,6 +80,22 @@
     "complete": "カット完了",
     "running": "カット中...",
     "outputPath": "出力先"
+  },
+  "merge": {
+    "dropzone": "結合するファイルをドラッグ&ドロップ または クリックして選択",
+    "fileList": "ファイルリスト",
+    "addFile": "ファイル追加",
+    "removeFile": "削除",
+    "moveUp": "上へ",
+    "moveDown": "下へ",
+    "totalDuration": "合計時間",
+    "totalSize": "合計サイズ",
+    "fileCount": "ファイル数",
+    "outputPath": "出力先",
+    "execute": "結合実行",
+    "complete": "結合完了",
+    "running": "結合中...",
+    "minFiles": "2つ以上のファイルを追加してください"
   },
   "extract": {
     "streams": "ストリーム一覧",

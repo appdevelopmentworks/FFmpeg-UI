@@ -461,6 +461,56 @@ pub async fn run_ffmpeg_job_pub(
     }
 }
 
+// ── merge_media ──────────────────────────────────────────────────────────────
+
+/// 複数メディアファイルを結合 (FFmpeg concat demuxer)
+pub async fn merge_media(
+    app: tauri::AppHandle,
+    job_id: String,
+    input_paths: Vec<String>,
+    output_path: String,
+    cancel_rx: oneshot::Receiver<()>,
+) -> AppResult<String> {
+    // 合計duurationを計算
+    let mut total_duration = 0.0;
+    for p in &input_paths {
+        if let Ok(info) = probe_media(p).await {
+            total_duration += info.duration;
+        }
+    }
+
+    // concat demuxer 用のファイルリストを一時ファイルに書き出す
+    let tmp_dir = crate::config::temp_dir();
+    std::fs::create_dir_all(&tmp_dir).map_err(crate::error::AppError::Io)?;
+    let list_path = tmp_dir.join(format!("{job_id}_concat.txt"));
+
+    let mut content = String::new();
+    for p in &input_paths {
+        // パスをエスケープ（シングルクォートと改行）
+        let escaped = p.replace('\'', "'\\''");
+        content.push_str(&format!("file '{}'\n", escaped));
+    }
+    std::fs::write(&list_path, &content).map_err(crate::error::AppError::Io)?;
+
+    let list_str = list_path.to_string_lossy().to_string();
+
+    let args: Vec<String> = vec![
+        "-y".to_string(),
+        "-f".to_string(), "concat".to_string(),
+        "-safe".to_string(), "0".to_string(),
+        "-i".to_string(), list_str.clone(),
+        "-c".to_string(), "copy".to_string(),
+        output_path.clone(),
+    ];
+
+    let result = run_ffmpeg_job_pub(app, job_id, args, total_duration, output_path, cancel_rx).await;
+
+    // 一時ファイルを削除
+    let _ = std::fs::remove_file(&list_path);
+
+    result
+}
+
 // ── trim_media ────────────────────────────────────────────────────────────────
 
 /// メディアのトリミング

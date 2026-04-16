@@ -55,9 +55,20 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024).toFixed(0)} KB`;
 }
 
-// ── Video Preview ──────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-function VideoPreview({
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg', 'wma', 'opus'];
+const VIDEO_EXTENSIONS = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', 'ts', 'm4v', 'wmv'];
+const ALL_MEDIA_EXTENSIONS = [...VIDEO_EXTENSIONS, ...AUDIO_EXTENSIONS];
+
+function isAudioFile(filePath: string): boolean {
+  const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
+  return AUDIO_EXTENSIONS.includes(ext);
+}
+
+// ── Media Preview (動画 & 音声 両対応) ──────────────────────────────────────────
+
+function MediaPreview({
   filePath,
   startTime,
   endTime,
@@ -66,14 +77,15 @@ function VideoPreview({
   startTime: number;
   endTime: number;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+  const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement>(null);
+  const [mediaSrc, setMediaSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const isAudio = isAudioFile(filePath);
 
   useEffect(() => {
     try {
       const src = convertFileSrc(filePath);
-      setVideoSrc(src);
+      setMediaSrc(src);
       setError(false);
     } catch {
       setError(true);
@@ -82,13 +94,13 @@ function VideoPreview({
 
   // Seek to startTime when it changes
   useEffect(() => {
-    const v = videoRef.current;
-    if (v && v.readyState >= 1) {
-      v.currentTime = startTime;
+    const m = mediaRef.current;
+    if (m && m.readyState >= 1) {
+      m.currentTime = startTime;
     }
   }, [startTime]);
 
-  if (error || !videoSrc) return null;
+  if (error || !mediaSrc) return null;
 
   return (
     <div
@@ -98,18 +110,34 @@ function VideoPreview({
         border: '0.5px solid var(--border-default)',
       }}
     >
-      <video
-        ref={videoRef}
-        src={videoSrc}
-        controls
-        className="w-full"
-        style={{ maxHeight: '360px', backgroundColor: '#000' }}
-        onLoadedMetadata={() => {
-          const v = videoRef.current;
-          if (v) v.currentTime = startTime;
-        }}
-        onError={() => setError(true)}
-      />
+      {isAudio ? (
+        <div className="px-4 py-4">
+          <audio
+            ref={mediaRef as React.RefObject<HTMLAudioElement>}
+            src={mediaSrc}
+            controls
+            className="w-full"
+            onLoadedMetadata={() => {
+              const m = mediaRef.current;
+              if (m) m.currentTime = startTime;
+            }}
+            onError={() => setError(true)}
+          />
+        </div>
+      ) : (
+        <video
+          ref={mediaRef as React.RefObject<HTMLVideoElement>}
+          src={mediaSrc}
+          controls
+          className="w-full"
+          style={{ maxHeight: '360px', backgroundColor: '#000' }}
+          onLoadedMetadata={() => {
+            const m = mediaRef.current;
+            if (m) m.currentTime = startTime;
+          }}
+          onError={() => setError(true)}
+        />
+      )}
       <div className="flex items-center justify-between px-3 py-1.5">
         <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
           選択範囲: {secondsToDisplay(startTime)} → {secondsToDisplay(endTime)}
@@ -150,7 +178,7 @@ export function TrimTab() {
     try {
       const result = await openDialog({
         multiple: false,
-        filters: [{ name: 'Media', extensions: ['mp4','mkv','avi','mov','webm','flv','ts','m4v','wmv'] }],
+        filters: [{ name: 'Media', extensions: ALL_MEDIA_EXTENSIONS }],
       });
       if (result && typeof result === 'string') loadFile(result);
     } catch (err) {
@@ -193,9 +221,9 @@ export function TrimTab() {
         <DropZone
           multiple={false}
           onFileDrop={handleFileDrop}
-          accept={['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.ts', '.m4v']}
+          accept={ALL_MEDIA_EXTENSIONS.map(e => `.${e}`)}
           label={tc('dragOrClick')}
-          sublabel="mp4, mkv, avi, mov, webm, flv, ts"
+          sublabel="動画: mp4, mkv, avi, mov / 音声: mp3, wav, flac, aac, m4a"
           className="py-8"
         />
       ) : (
@@ -240,9 +268,9 @@ export function TrimTab() {
       {/* Main content — AnimatePresence なしで直接表示 */}
       {probeState === 'ready' && mediaInfo && (
         <div className="flex flex-col gap-4">
-          {/* Video Preview */}
+          {/* Media Preview (動画 or 音声) */}
           {filePath && (
-            <VideoPreview
+            <MediaPreview
               filePath={filePath}
               startTime={startTime}
               endTime={endTime}
