@@ -3,6 +3,10 @@ name: Build macOS
 on:
   workflow_dispatch:
 
+env:
+  # Node.js 20 非推奨警告を回避（Node.js 24 を早期採用）
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-macos:
     runs-on: macos-latest
@@ -12,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Setup Rust
