@@ -1,6 +1,6 @@
 [package]
 name = "ffmpeg-ui"
-version = "0.1.0"
+version = "0.1.1"
 description = "FFmpeg GUI - A modern desktop app for FFmpeg and yt-dlp"
 authors = []
 edition = "2021"
