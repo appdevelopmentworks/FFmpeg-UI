@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+            name: macOS-AppleSilicon
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+            name: macOS-Intel
+          - platform: windows-latest
+            args: ''
+            name: Windows
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build & Release Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__
+          releaseName: 'FFmpeg-UI v__VERSION__'
+          releaseBody: |
+            ## FFmpeg-UI v__VERSION__
+
+            ### Windows
+            - `.msi` インストーラー（推奨）または `.exe`（NSIS）
+            - 初回起動時の SmartScreen 警告は「詳細情報」→「実行」で回避できます
+
+            ### macOS
+            - Apple Silicon (M1/M2/M3 など): `*_aarch64.dmg`
+            - Intel Mac: `*_x64.dmg`
+            - 初回起動時の Gatekeeper 警告: Finder で右クリック →「開く」で起動できます
+            - それでも開けない場合: `xattr -cr /Applications/FFmpeg-UI.app`
+
+            ---
+            See the assets below to download and install this version.
+          releaseDraft: true
+          prerelease: false
+          tauriScript: npx tauri
+          args: ${{ matrix.args }}
