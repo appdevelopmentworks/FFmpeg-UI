@@ -65,7 +65,18 @@
     "infoAudio": "Audio",
     "crfHigh": "High",
     "crfMid": "Standard",
-    "crfLow": "Low"
+    "crfLow": "Low",
+    "scalingAlgorithm": "Scaling Method",
+    "scalingBilinear": "Bilinear (default, fast)",
+    "scalingLanczos": "Lanczos (high quality)",
+    "scalingAi": "AI Super Resolution (best, slow)",
+    "aiModel": "AI Model",
+    "aiModelGeneral": "General (realesrgan-x4plus)",
+    "aiModelAnime": "Anime (realesrgan-x4plus-anime)",
+    "aiModelVideo": "Fast (realesr-animevideov3)",
+    "aiScale": "Scale",
+    "aiWarning": "AI upscaling is slow — GPU recommended",
+    "aiNotInstalled": "Download the AI module from the setup screen to enable AI upscaling"
   },
   "trim": {
     "start": "Start",
@@ -271,7 +282,12 @@
     "retryBtn": "Retry",
     "sha256Note": "SHA256 checksum verification",
     "completeMsg": "Setup complete — closing shortly",
-    "errorMsg": "An error occurred. Please retry."
+    "errorMsg": "An error occurred. Please retry.",
+    "realesrganTitle": "AI Super Resolution (optional)",
+    "realesrganDescription": "Enable true image enhancement with Real-ESRGAN (~80MB)",
+    "realesrganEnable": "Enable AI Super Resolution",
+    "realesrganInstalled": "Installed",
+    "realesrganOptionalNote": "Other features remain available without this module"
   },
   "common": {
     "outputDir": "Output Directory",

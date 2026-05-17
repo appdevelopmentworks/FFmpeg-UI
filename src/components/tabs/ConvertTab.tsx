@@ -14,8 +14,9 @@ import { Select } from '@/components/ui/Select';
 import { Slider } from '@/components/ui/Slider';
 import { Toggle } from '@/components/ui/Toggle';
 import { PresetSelector } from '@/components/shared/PresetSelector';
+import { useSettingsStore } from '@/stores/settingsStore';
 import type { MediaInfo } from '@/types/media';
-import type { FFmpegCommand, HWEncoder } from '@/types/ffmpeg';
+import type { FFmpegCommand, HWEncoder, ScalingAlgorithm, AiUpscaleModel } from '@/types/ffmpeg';
 import type { Preset } from '@/types/preset';
 import {
   buildCommandString,
@@ -42,6 +43,9 @@ interface ConvertState {
   resolutionPreset: string;
   customWidth: number;
   customHeight: number;
+  scalingAlgorithm: ScalingAlgorithm;
+  aiModel: AiUpscaleModel;
+  aiScale: 2 | 3 | 4;
   bitrateMode: 'crf' | 'cbr' | 'vbr';
   crfValue: number;
   videoBitrate: string;
@@ -62,6 +66,9 @@ const INITIAL_STATE: ConvertState = {
   resolutionPreset: 'original',
   customWidth: 1920,
   customHeight: 1080,
+  scalingAlgorithm: 'bilinear',
+  aiModel: 'realesrgan-x4plus',
+  aiScale: 2,
   bitrateMode: 'crf',
   crfValue: 23,
   videoBitrate: '2000k',
@@ -84,7 +91,43 @@ function formatDuration(secs: number): string {
     : `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function stateToFFmpegCommand(s: ConvertState): FFmpegCommand {
+function joinPath(dir: string, file: string): string {
+  if (!dir) return file;
+  const sep = dir.includes('\\') ? '\\' : '/';
+  const trimmed = dir.replace(/[\\/]+$/, '');
+  return `${trimmed}${sep}${file}`;
+}
+
+function aiModelShort(m: AiUpscaleModel): string {
+  switch (m) {
+    case 'realesrgan-x4plus': return 'x4plus';
+    case 'realesrgan-x4plus-anime': return 'x4anime';
+    case 'realesr-animevideov3': return 'animev3';
+  }
+}
+
+/** スケーリング設定からファイル名末尾サフィックスを返す */
+function scalingSuffix(
+  scaling: ScalingAlgorithm,
+  resolutionPreset: string,
+  aiModel: AiUpscaleModel,
+  aiScale: 2 | 3 | 4,
+): string {
+  if (resolutionPreset === 'original') return 'converted';
+  if (scaling === 'ai') return `ai_${aiModelShort(aiModel)}_${aiScale}x`;
+  return scaling; // 'bilinear' or 'lanczos'
+}
+
+/** 自動生成された outputFilename かを判定するパターン (ユーザー手動編集を尊重するため) */
+const AUTO_FILENAME_RE = /_(converted|bilinear|lanczos|ai_[a-z0-9]+_[234]x)\.[^.]+$/i;
+
+function buildAutoFilename(inputPath: string, suffix: string, container: string): string {
+  const base = inputPath.split(/[/\\]/).pop() ?? '';
+  const stem = base.replace(/\.[^/.]+$/, '');
+  return `${stem}_${suffix}.${container}`;
+}
+
+function stateToFFmpegCommand(s: ConvertState, fallbackOutputDir: string): FFmpegCommand {
   const isVideoCopy = s.videoCodec === 'copy';
   const isAudioCopy = s.audioCodec === 'copy';
 
@@ -93,21 +136,32 @@ function stateToFFmpegCommand(s: ConvertState): FFmpegCommand {
 
   const resolution = (() => {
     if (s.resolutionPreset === 'original') return undefined;
-    if (s.resolutionPreset === 'custom') {
-      return { width: s.customWidth, height: s.customHeight };
-    }
-    const preset = RESOLUTION_PRESETS.find((r) => r.id === s.resolutionPreset);
-    if (preset && preset.width && preset.height) {
-      return { width: preset.width, height: preset.height };
-    }
-    return undefined;
+    const base = (() => {
+      if (s.resolutionPreset === 'custom') {
+        return { width: s.customWidth, height: s.customHeight };
+      }
+      const preset = RESOLUTION_PRESETS.find((r) => r.id === s.resolutionPreset);
+      if (preset && preset.width && preset.height) {
+        return { width: preset.width, height: preset.height };
+      }
+      return undefined;
+    })();
+    if (!base) return undefined;
+    return {
+      ...base,
+      algorithm: s.scalingAlgorithm,
+      ...(s.scalingAlgorithm === 'ai'
+        ? { aiModel: s.aiModel, aiScale: s.aiScale }
+        : {}),
+    };
   })();
 
+  const effectiveOutputDir = s.outputDir || fallbackOutputDir;
   return {
     inputPath: s.inputPath || 'input.mp4',
     outputPath: s.outputFilename
-      ? `${s.outputDir ? s.outputDir + '/' : ''}${s.outputFilename}`
-      : 'output.mp4',
+      ? joinPath(effectiveOutputDir, s.outputFilename)
+      : joinPath(effectiveOutputDir, 'output.mp4'),
     videoCodec: effectiveVideoCodec,
     audioCodec: isAudioCopy ? undefined : s.audioCodec || undefined,
     videoBitrate:
@@ -142,6 +196,14 @@ export function ConvertTab() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 設定（デフォルト出力先）— 未ロードならロード
+  const settingsOutputDir = useSettingsStore((s) => s.outputDir);
+  const settingsLoaded = useSettingsStore((s) => s.isLoaded);
+  const loadSettings = useSettingsStore((s) => s.load);
+  useEffect(() => {
+    if (!settingsLoaded) loadSettings();
+  }, [settingsLoaded, loadSettings]);
+
   const update = useCallback(<K extends keyof ConvertState>(k: K, v: ConvertState[K]) => {
     setState((prev) => ({ ...prev, [k]: v }));
   }, []);
@@ -160,7 +222,10 @@ export function ConvertTab() {
   }, []);
 
   // Build command + estimate size
-  const ffmpegCmd = useMemo(() => stateToFFmpegCommand(state), [state]);
+  const ffmpegCmd = useMemo(
+    () => stateToFFmpegCommand(state, settingsOutputDir),
+    [state, settingsOutputDir],
+  );
   const commandPreview = useMemo(() => buildCommandString(ffmpegCmd), [ffmpegCmd]);
 
   const estimatedBytes = useMemo(() => {
@@ -180,14 +245,20 @@ export function ConvertTab() {
     if (!filePath) return;
     setError(null);
 
-    const name = filePath.split(/[/\\]/).pop() ?? filePath;
-    const stem = name.replace(/\.[^/.]+$/, '');
-    setState((prev) => ({
-      ...prev,
-      inputPath: filePath,
-      inputInfo: null,
-      outputFilename: `${stem}_converted.${prev.container}`,
-    }));
+    setState((prev) => {
+      const suffix = scalingSuffix(
+        prev.scalingAlgorithm,
+        prev.resolutionPreset,
+        prev.aiModel,
+        prev.aiScale,
+      );
+      return {
+        ...prev,
+        inputPath: filePath,
+        inputInfo: null,
+        outputFilename: buildAutoFilename(filePath, suffix, prev.container),
+      };
+    });
 
     try {
       const { probeMedia } = await import('@/lib/tauri/commands');
@@ -217,10 +288,18 @@ export function ConvertTab() {
       customHeight: cmd.resolution?.height ?? prev.customHeight,
       fps: cmd.fps ?? prev.fps,
       twoPass: cmd.twoPass,
-      outputFilename:
-        prev.inputPath
-          ? `${prev.inputPath.replace(/.*[/\\]/, '').replace(/\.[^/.]+$/, '')}_converted.${cmd.container ?? prev.container}`
-          : prev.outputFilename,
+      outputFilename: prev.inputPath
+        ? buildAutoFilename(
+            prev.inputPath,
+            scalingSuffix(
+              prev.scalingAlgorithm,
+              cmd.resolution ? 'custom' : 'original',
+              prev.aiModel,
+              prev.aiScale,
+            ),
+            cmd.container ?? prev.container,
+          )
+        : prev.outputFilename,
     }));
     setShowPresets(false);
   }, []);
@@ -242,14 +321,37 @@ export function ConvertTab() {
     setError(null);
     setIsConverting(true);
     try {
-      const { executeFFmpeg } = await import('@/lib/tauri/commands');
-      await executeFFmpeg(ffmpegCmd);
+      const isAi =
+        state.scalingAlgorithm === 'ai' &&
+        state.resolutionPreset !== 'original' &&
+        !!ffmpegCmd.resolution;
+      if (isAi && ffmpegCmd.resolution) {
+        const { executeAiUpscale, checkBinaries } = await import('@/lib/tauri/commands');
+        const status = await checkBinaries();
+        if (!status.realesrganInstalled) {
+          setError(t('aiNotInstalled'));
+          return;
+        }
+        await executeAiUpscale({
+          inputPath: ffmpegCmd.inputPath,
+          outputPath: ffmpegCmd.outputPath,
+          model: state.aiModel,
+          scale: state.aiScale,
+          targetWidth: ffmpegCmd.resolution.width,
+          targetHeight: ffmpegCmd.resolution.height,
+          videoCodec: ffmpegCmd.videoCodec ?? 'libx264',
+          crf: ffmpegCmd.crf,
+        });
+      } else {
+        const { executeFFmpeg } = await import('@/lib/tauri/commands');
+        await executeFFmpeg(ffmpegCmd);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsConverting(false);
     }
-  }, [state.inputPath, ffmpegCmd]);
+  }, [state.inputPath, state.scalingAlgorithm, state.resolutionPreset, state.aiModel, state.aiScale, ffmpegCmd, t]);
 
   // Open output dir dialog
   const handleSelectOutputDir = useCallback(async () => {
@@ -269,6 +371,28 @@ export function ConvertTab() {
       return { ...prev, outputFilename: `${stem}.${prev.container}` };
     });
   }, [state.container]);
+
+  // スケーリング設定変更時、自動生成ファイル名のサフィックスを更新する
+  // （ユーザーが手動編集した名前は AUTO_FILENAME_RE にマッチしないため温存される）
+  useEffect(() => {
+    setState((prev) => {
+      if (!prev.inputPath) return prev;
+      if (!AUTO_FILENAME_RE.test(prev.outputFilename)) return prev;
+      const suffix = scalingSuffix(
+        prev.scalingAlgorithm,
+        prev.resolutionPreset,
+        prev.aiModel,
+        prev.aiScale,
+      );
+      const next = buildAutoFilename(prev.inputPath, suffix, prev.container);
+      return next === prev.outputFilename ? prev : { ...prev, outputFilename: next };
+    });
+  }, [
+    state.scalingAlgorithm,
+    state.aiModel,
+    state.aiScale,
+    state.resolutionPreset,
+  ]);
 
   // HW encoder options
   const hwOptions = useMemo(() => {
@@ -491,6 +615,78 @@ export function ConvertTab() {
               )}
             </div>
 
+            {/* Scaling Algorithm */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                {t('scalingAlgorithm')}
+              </span>
+              <select
+                className="w-full appearance-none rounded-md pl-2.5 pr-7 text-sm outline-none h-7"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: state.resolutionPreset === 'original' ? 'var(--text-tertiary)' : 'var(--text-primary)',
+                  border: '0.5px solid var(--border-default)',
+                  cursor: state.resolutionPreset === 'original' ? 'not-allowed' : 'pointer',
+                }}
+                value={state.scalingAlgorithm}
+                disabled={state.resolutionPreset === 'original'}
+                onChange={(e) => update('scalingAlgorithm', e.target.value as ScalingAlgorithm)}
+              >
+                <option value="bilinear" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  {t('scalingBilinear')}
+                </option>
+                <option value="lanczos" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  {t('scalingLanczos')}
+                </option>
+                <option value="ai" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                  {t('scalingAi')}
+                </option>
+              </select>
+              {state.scalingAlgorithm === 'ai' && state.resolutionPreset !== 'original' && (
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <div className="flex gap-2">
+                    <select
+                      className="flex-1 appearance-none rounded-md pl-2.5 pr-7 text-xs outline-none h-7"
+                      style={{
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--text-primary)',
+                        border: '0.5px solid var(--border-default)',
+                      }}
+                      value={state.aiModel}
+                      onChange={(e) => update('aiModel', e.target.value as AiUpscaleModel)}
+                    >
+                      <option value="realesrgan-x4plus" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        {t('aiModelGeneral')}
+                      </option>
+                      <option value="realesrgan-x4plus-anime" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        {t('aiModelAnime')}
+                      </option>
+                      <option value="realesr-animevideov3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        {t('aiModelVideo')}
+                      </option>
+                    </select>
+                    <select
+                      className="w-20 appearance-none rounded-md pl-2.5 pr-7 text-xs outline-none h-7"
+                      style={{
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--text-primary)',
+                        border: '0.5px solid var(--border-default)',
+                      }}
+                      value={String(state.aiScale)}
+                      onChange={(e) => update('aiScale', parseInt(e.target.value) as 2 | 3 | 4)}
+                    >
+                      <option value="2" style={{ backgroundColor: 'var(--bg-secondary)' }}>2x</option>
+                      <option value="3" style={{ backgroundColor: 'var(--bg-secondary)' }}>3x</option>
+                      <option value="4" style={{ backgroundColor: 'var(--bg-secondary)' }}>4x</option>
+                    </select>
+                  </div>
+                  <span className="text-xs" style={{ color: 'var(--status-warning)' }}>
+                    ⚠ {t('aiWarning')}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {/* FPS */}
             <Select
               label={t('fps')}
@@ -688,7 +884,7 @@ export function ConvertTab() {
             className="truncate text-xs"
             style={{ color: 'var(--text-secondary)' }}
           >
-            {state.outputDir || '~/Downloads'}
+            {state.outputDir || settingsOutputDir || '~/Downloads'}
           </button>
           <button
             onClick={handleSelectOutputDir}

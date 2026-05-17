@@ -65,7 +65,18 @@
     "infoAudio": "音声",
     "crfHigh": "高品質",
     "crfMid": "標準",
-    "crfLow": "低品質"
+    "crfLow": "低品質",
+    "scalingAlgorithm": "スケーリング方式",
+    "scalingBilinear": "Bilinear（標準・高速）",
+    "scalingLanczos": "Lanczos（高品質）",
+    "scalingAi": "AI超解像（最高品質・低速）",
+    "aiModel": "AIモデル",
+    "aiModelGeneral": "汎用 (realesrgan-x4plus)",
+    "aiModelAnime": "アニメ専用 (realesrgan-x4plus-anime)",
+    "aiModelVideo": "高速 (realesr-animevideov3)",
+    "aiScale": "倍率",
+    "aiWarning": "AI超解像は処理に時間がかかります（GPU推奨）",
+    "aiNotInstalled": "AI超解像を使うには設定画面からモジュールをダウンロードしてください"
   },
   "trim": {
     "start": "開始",
@@ -271,7 +282,12 @@
     "retryBtn": "再試行",
     "sha256Note": "SHA256 チェックサム検証を行います",
     "completeMsg": "セットアップ完了 — まもなく閉じます",
-    "errorMsg": "エラーが発生しました。再試行してください。"
+    "errorMsg": "エラーが発生しました。再試行してください。",
+    "realesrganTitle": "AIスーパー解像度（オプション）",
+    "realesrganDescription": "Real-ESRGAN による真の高画質化を有効化（約80MB）",
+    "realesrganEnable": "AI超解像を有効にする",
+    "realesrganInstalled": "インストール済み",
+    "realesrganOptionalNote": "未インストールでも他の機能は利用できます"
   },
   "common": {
     "outputDir": "出力先",

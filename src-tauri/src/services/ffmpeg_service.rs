@@ -674,7 +674,12 @@ pub fn build_command(cmd: &crate::models::ffmpeg::FFmpegCommand) -> Vec<String> 
     // Video filters (scale + enabled video filters)
     let mut vf_parts: Vec<String> = Vec::new();
     if let Some(ref res) = cmd.resolution {
-        vf_parts.push(format!("scale={}:{}", res.width, res.height));
+        // AI scaling is handled by a separate pipeline; skip scale here.
+        let alg = res.algorithm.as_deref().unwrap_or("");
+        if alg != "ai" {
+            let flags = if alg == "lanczos" { ":flags=lanczos" } else { "" };
+            vf_parts.push(format!("scale={}:{}{}", res.width, res.height, flags));
+        }
     }
     for f in cmd.filters.iter().filter(|f| {
         f.enabled && f.category.as_deref() == Some("video")

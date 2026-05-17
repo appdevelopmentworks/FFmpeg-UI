@@ -33,8 +33,9 @@ pub async fn download_binary(
     let result = match tool.as_str() {
         "ffmpeg" => binary_manager::install_ffmpeg(&app).await,
         "ytdlp" => binary_manager::install_ytdlp(&app).await,
+        "realesrgan" => binary_manager::install_realesrgan(&app).await,
         other => {
-            return Err(format!("Unknown tool: {other}. Use 'ffmpeg' or 'ytdlp'"));
+            return Err(format!("Unknown tool: {other}. Use 'ffmpeg', 'ytdlp' or 'realesrgan'"));
         }
     };
 
@@ -42,6 +43,9 @@ pub async fn download_binary(
         Ok(version) => {
             let path = match tool.as_str() {
                 "ffmpeg" => crate::platform::ffmpeg_path()
+                    .to_string_lossy()
+                    .to_string(),
+                "realesrgan" => crate::platform::realesrgan_path()
                     .to_string_lossy()
                     .to_string(),
                 _ => crate::platform::ytdlp_path()

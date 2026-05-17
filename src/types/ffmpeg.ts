@@ -25,7 +25,17 @@ export interface FFmpegCommand {
 export interface Resolution {
   width: number;
   height: number;
+  algorithm?: ScalingAlgorithm;
+  aiModel?: AiUpscaleModel;
+  aiScale?: 2 | 3 | 4;
 }
+
+export type ScalingAlgorithm = 'bilinear' | 'lanczos' | 'ai';
+
+export type AiUpscaleModel =
+  | 'realesr-animevideov3'
+  | 'realesrgan-x4plus'
+  | 'realesrgan-x4plus-anime';
 
 export interface TrimSpec {
   start: number; // 秒

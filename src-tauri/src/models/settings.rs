@@ -67,6 +67,9 @@ pub struct BinaryStatus {
     pub ytdlp_installed: bool,
     pub ytdlp_version: Option<String>,
     pub ytdlp_path: Option<String>,
+    pub realesrgan_installed: bool,
+    pub realesrgan_version: Option<String>,
+    pub realesrgan_path: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

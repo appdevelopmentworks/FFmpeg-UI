@@ -51,7 +51,12 @@ export function buildArgs(cmd: FFmpegCommand): string[] {
   // Video filters
   const vfParts: string[] = [];
   if (cmd.resolution) {
-    vfParts.push(`scale=${cmd.resolution.width}:${cmd.resolution.height}`);
+    const alg = cmd.resolution.algorithm;
+    // AI is handled by a separate pipeline (execute_ai_upscale); don't emit scale here.
+    if (alg !== 'ai') {
+      const flags = alg === 'lanczos' ? ':flags=lanczos' : '';
+      vfParts.push(`scale=${cmd.resolution.width}:${cmd.resolution.height}${flags}`);
+    }
   }
   for (const f of cmd.filters.filter((f) => f.enabled && f.category === 'video')) {
     const params = Object.entries(f.params)

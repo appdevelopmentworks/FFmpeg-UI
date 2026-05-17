@@ -19,6 +19,11 @@ pub const YTDLP_BIN: &str = "yt-dlp.exe";
 #[cfg(not(target_os = "windows"))]
 pub const YTDLP_BIN: &str = "yt-dlp";
 
+#[cfg(target_os = "windows")]
+pub const REALESRGAN_BIN: &str = "realesrgan-ncnn-vulkan.exe";
+#[cfg(not(target_os = "windows"))]
+pub const REALESRGAN_BIN: &str = "realesrgan-ncnn-vulkan";
+
 // ── バイナリパス ─────────────────────────────────────────────────────────────
 
 /// システム PATH からバイナリを探す
@@ -56,6 +61,15 @@ pub fn ffprobe_path() -> PathBuf {
 
 pub fn ytdlp_path() -> PathBuf {
     resolve_binary(YTDLP_BIN)
+}
+
+pub fn realesrgan_path() -> PathBuf {
+    resolve_binary(REALESRGAN_BIN)
+}
+
+/// Real-ESRGAN モデルファイル (.bin/.param) を配置するディレクトリ
+pub fn realesrgan_models_dir() -> PathBuf {
+    config::binaries_dir().join("models")
 }
 
 // ── ダウンロードURL ──────────────────────────────────────────────────────────
@@ -100,6 +114,21 @@ pub const YTDLP_DOWNLOAD_URL: &str =
 
 pub const YTDLP_SHA256SUMS_URL: &str =
     "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS";
+
+// Real-ESRGAN ncnn-vulkan: GitHub Releases にOS別ZIPが用意されている。
+// ZIP内にバイナリと models/ ディレクトリ (.bin/.param) が同梱。
+// 参照: https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0
+#[cfg(target_os = "windows")]
+pub const REALESRGAN_DOWNLOAD_URL: &str =
+    "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-windows.zip";
+
+#[cfg(target_os = "macos")]
+pub const REALESRGAN_DOWNLOAD_URL: &str =
+    "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-macos.zip";
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+pub const REALESRGAN_DOWNLOAD_URL: &str =
+    "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip";
 
 // ── ZIP内でのバイナリエントリサフィックス ─────────────────────────────────────
 

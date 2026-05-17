@@ -310,6 +310,77 @@ pub async fn install_ytdlp(app: &AppHandle) -> AppResult<String> {
     Ok(version)
 }
 
+// ── Real-ESRGAN インストール ──────────────────────────────────────────────────
+
+/// Real-ESRGAN-ncnn-vulkan のZIPから、バイナリ + models/ をまるごと展開する
+pub fn extract_realesrgan_zip(
+    archive_path: &Path,
+    bin_dir:      &Path,
+) -> AppResult<PathBuf> {
+    let file = std::fs::File::open(archive_path)?;
+    let mut zip = zip::ZipArchive::new(file)?;
+
+    let bin_name = platform::REALESRGAN_BIN;
+    let mut bin_path: Option<PathBuf> = None;
+
+    let models_dir = platform::realesrgan_models_dir();
+    std::fs::create_dir_all(&models_dir)?;
+
+    for i in 0..zip.len() {
+        let mut entry = zip.by_index(i)?;
+        let entry_name = entry.name().replace('\\', "/");
+
+        if entry.is_dir() {
+            continue;
+        }
+
+        // バイナリ (任意のサブディレクトリ下に置かれていてもファイル名で判定)
+        if entry_name.ends_with(bin_name) {
+            let dest = bin_dir.join(bin_name);
+            let mut out = std::fs::File::create(&dest)?;
+            std::io::copy(&mut entry, &mut out)?;
+            bin_path = Some(dest);
+            continue;
+        }
+
+        // models/xxx.bin / models/xxx.param
+        if let Some(idx) = entry_name.find("models/") {
+            let rel = &entry_name[idx + "models/".len()..];
+            if rel.is_empty() { continue; }
+            let dest = models_dir.join(rel);
+            if let Some(parent) = dest.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let mut out = std::fs::File::create(&dest)?;
+            std::io::copy(&mut entry, &mut out)?;
+        }
+    }
+
+    bin_path.ok_or_else(|| AppError::DownloadFailed {
+        message: format!("'{bin_name}' not found inside Real-ESRGAN archive"),
+    })
+}
+
+pub async fn install_realesrgan(app: &AppHandle) -> AppResult<String> {
+    let bin_dir = config::binaries_dir();
+    std::fs::create_dir_all(&bin_dir)?;
+
+    let tmp_dir = config::temp_dir();
+    std::fs::create_dir_all(&tmp_dir)?;
+
+    let archive = tmp_dir.join("realesrgan.zip");
+
+    download_file(platform::REALESRGAN_DOWNLOAD_URL, &archive, app, "realesrgan").await?;
+
+    let bin_path = extract_realesrgan_zip(&archive, &bin_dir)?;
+    let _ = std::fs::remove_file(&archive);
+
+    platform::set_executable(&bin_path)?;
+
+    // バージョンは取得できないリリースもあるので version 文字列は固定で返す
+    Ok("v0.2.0".to_string())
+}
+
 // ── 全バイナリステータス確認 ──────────────────────────────────────────────────
 
 pub async fn check_all_binaries() -> BinaryStatus {
@@ -329,6 +400,11 @@ pub async fn check_all_binaries() -> BinaryStatus {
 
     let ffmpeg_path = platform::ffmpeg_path();
     let ytdlp_path  = platform::ytdlp_path();
+    let realesrgan_path = platform::realesrgan_path();
+    let realesrgan_models_dir = platform::realesrgan_models_dir();
+
+    // Real-ESRGAN はバージョン取得APIを持たないので、バイナリ存在＋modelsディレクトリ存在で判定
+    let realesrgan_installed = realesrgan_path.exists() && realesrgan_models_dir.exists();
 
     BinaryStatus {
         ffmpeg_installed: ffmpeg_ver.is_some(),
@@ -342,6 +418,13 @@ pub async fn check_all_binaries() -> BinaryStatus {
         ytdlp_version:    ytdlp_ver,
         ytdlp_path:       if ytdlp_path.exists() {
             Some(ytdlp_path.to_string_lossy().to_string())
+        } else {
+            None
+        },
+        realesrgan_installed,
+        realesrgan_version: if realesrgan_installed { Some("v0.2.0".to_string()) } else { None },
+        realesrgan_path: if realesrgan_path.exists() {
+            Some(realesrgan_path.to_string_lossy().to_string())
         } else {
             None
         },

@@ -40,9 +40,16 @@ pub struct FFmpegCommand {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct Resolution {
     pub width: u32,
     pub height: u32,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai_model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ai_scale: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

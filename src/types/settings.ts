@@ -23,6 +23,9 @@ export interface BinaryStatus {
   ytdlpInstalled: boolean;
   ytdlpVersion?: string;
   ytdlpPath?: string;
+  realesrganInstalled: boolean;
+  realesrganVersion?: string;
+  realesrganPath?: string;
 }
 
 /** アップデート情報 */

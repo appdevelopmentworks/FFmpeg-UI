@@ -31,7 +31,7 @@ function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
 // ── Setup ────────────────────────────────────────────────────────────────────
 export const checkBinaries = () => invoke<BinaryStatus>('check_binaries');
 
-export const downloadBinary = (tool: 'ffmpeg' | 'ytdlp') =>
+export const downloadBinary = (tool: 'ffmpeg' | 'ytdlp' | 'realesrgan') =>
   invoke<string>('download_binary', { tool });
 
 export const checkUpdates = () => invoke<UpdateInfo>('check_updates');
@@ -67,6 +67,20 @@ export const getPreviewUrl = (url: string) =>
 // ── FFmpeg ───────────────────────────────────────────────────────────────────
 export const executeFFmpeg = (command: FFmpegCommand) =>
   invoke<string>('execute_ffmpeg', { command });
+
+export interface AiUpscaleParams {
+  inputPath: string;
+  outputPath: string;
+  model: 'realesr-animevideov3' | 'realesrgan-x4plus' | 'realesrgan-x4plus-anime';
+  scale: 2 | 3 | 4;
+  targetWidth?: number;
+  targetHeight?: number;
+  videoCodec: string;
+  crf?: number;
+}
+
+export const executeAiUpscale = (params: AiUpscaleParams) =>
+  invoke<string>('execute_ai_upscale', { params });
 
 export const executeRawCommand = (commandString: string) =>
   invoke<string>('execute_raw_command', { commandString });

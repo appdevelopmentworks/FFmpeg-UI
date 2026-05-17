@@ -34,6 +34,7 @@ pub fn run() {
             commands::ffmpeg::merge_media,
             commands::ffmpeg::extract_streams,
             commands::ffmpeg::execute_ffmpeg,
+            commands::ffmpeg::execute_ai_upscale,
             commands::ffmpeg::execute_raw_command,
             commands::ffmpeg::build_command_preview,
             commands::ffmpeg::detect_hw_encoders,

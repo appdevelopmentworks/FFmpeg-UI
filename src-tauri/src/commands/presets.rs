@@ -97,6 +97,9 @@ pub fn builtin_presets() -> Vec<Preset> {
                 resolution: Some(crate::models::ffmpeg::Resolution {
                     width: 1080,
                     height: 1080,
+                    algorithm: None,
+                    ai_model: None,
+                    ai_scale: None,
                 }),
                 audio_bitrate: Some("192k".to_string()),
                 container: Some("mp4".to_string()),
@@ -119,6 +122,9 @@ pub fn builtin_presets() -> Vec<Preset> {
                 resolution: Some(crate::models::ffmpeg::Resolution {
                     width: 1280,
                     height: 720,
+                    algorithm: None,
+                    ai_model: None,
+                    ai_scale: None,
                 }),
                 fps: Some(30.0),
                 audio_bitrate: Some("128k".to_string()),

@@ -20,8 +20,15 @@ import {
   Check,
 } from 'lucide-react';
 import { useSettingsStore } from '@/stores/settingsStore';
-import { openFileDialog, checkUpdates, resetSettings } from '@/lib/tauri/commands';
-import type { ThemeMode, AppLocale } from '@/types/settings';
+import {
+  openFileDialog,
+  checkUpdates,
+  resetSettings,
+  checkBinaries,
+  downloadBinary,
+} from '@/lib/tauri/commands';
+import type { ThemeMode, AppLocale, BinaryStatus } from '@/types/settings';
+import { onSetupProgress, onSetupComplete, onSetupError } from '@/lib/tauri/events';
 
 type SettingsSection = 'general' | 'output' | 'performance' | 'tools' | 'data';
 
@@ -43,12 +50,76 @@ interface Props {
 export function SettingsModal({ open, onClose }: Props) {
   const t = useTranslations('settings');
   const tCommon = useTranslations('common');
+  const tSetup = useTranslations('setup');
 
   const store = useSettingsStore();
   const [section, setSection] = useState<SettingsSection>('general');
   const [saved, setSaved] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<{ ffmpegUpdate: boolean; ytdlpUpdate: boolean } | null>(null);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [binaries, setBinaries] = useState<BinaryStatus | null>(null);
+  const [realesrganDownloading, setRealesrganDownloading] = useState(false);
+  const [realesrganProgress, setRealesrganProgress] = useState(0);
+  const [realesrganError, setRealesrganError] = useState<string | null>(null);
+
+  const refreshBinaryStatus = async () => {
+    try {
+      const status = await checkBinaries();
+      setBinaries(status);
+    } catch {
+      // Tauri 環境外
+    }
+  };
+
+  // tools セクション表示時にバイナリ状態を取得
+  useEffect(() => {
+    if (open && section === 'tools') refreshBinaryStatus();
+  }, [open, section]);
+
+  // realesrgan のダウンロード進捗イベントを購読
+  useEffect(() => {
+    if (!realesrganDownloading) return;
+    let unlistenProgress: (() => void) | null = null;
+    let unlistenComplete: (() => void) | null = null;
+    let unlistenError: (() => void) | null = null;
+
+    (async () => {
+      unlistenProgress = await onSetupProgress((p) => {
+        if (p.tool === 'realesrgan') setRealesrganProgress(p.percent);
+      });
+      unlistenComplete = await onSetupComplete((c) => {
+        if (c.tool === 'realesrgan') {
+          setRealesrganDownloading(false);
+          setRealesrganProgress(100);
+          refreshBinaryStatus();
+        }
+      });
+      unlistenError = await onSetupError((e) => {
+        if (e.tool === 'realesrgan') {
+          setRealesrganDownloading(false);
+          setRealesrganError(e.error);
+        }
+      });
+    })();
+
+    return () => {
+      unlistenProgress?.();
+      unlistenComplete?.();
+      unlistenError?.();
+    };
+  }, [realesrganDownloading]);
+
+  const handleInstallRealesrgan = async () => {
+    setRealesrganError(null);
+    setRealesrganProgress(0);
+    setRealesrganDownloading(true);
+    try {
+      await downloadBinary('realesrgan');
+    } catch (err) {
+      setRealesrganDownloading(false);
+      setRealesrganError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   // Load settings on open
   useEffect(() => {
@@ -435,6 +506,70 @@ export function SettingsModal({ open, onClose }: Props) {
                             yt-dlp: {updateInfo.ytdlpUpdate ? t('updateAvailable') : t('upToDate')}
                           </div>
                         </div>
+                      )}
+                    </div>
+
+                    {/* Real-ESRGAN (AI Super Resolution) */}
+                    <div
+                      className="space-y-2 rounded-lg p-3"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '0.5px solid var(--border-default)',
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <label className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {tSetup('realesrganTitle')}
+                          </label>
+                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                            {tSetup('realesrganDescription')}
+                          </p>
+                        </div>
+                        {binaries?.realesrganInstalled ? (
+                          <span
+                            className="flex items-center gap-1 text-xs whitespace-nowrap"
+                            style={{ color: 'var(--status-success)' }}
+                          >
+                            <Check className="h-3 w-3" /> {tSetup('realesrganInstalled')}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={handleInstallRealesrgan}
+                            disabled={realesrganDownloading}
+                            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap"
+                            style={{
+                              backgroundColor: realesrganDownloading
+                                ? 'var(--bg-tertiary)'
+                                : 'var(--accent-cyan-dim)',
+                              color: realesrganDownloading
+                                ? 'var(--text-tertiary)'
+                                : 'var(--accent-cyan)',
+                              border: '0.5px solid var(--border-default)',
+                              cursor: realesrganDownloading ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {realesrganDownloading ? (
+                              <>
+                                <span className="animate-spin">↻</span> {realesrganProgress.toFixed(0)}%
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-3 w-3" /> {tSetup('realesrganEnable')}
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {realesrganError && (
+                        <p className="text-[11px]" style={{ color: 'var(--status-error)' }}>
+                          {realesrganError}
+                        </p>
+                      )}
+                      {!binaries?.realesrganInstalled && !realesrganDownloading && (
+                        <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                          {tSetup('realesrganOptionalNote')}
+                        </p>
                       )}
                     </div>
                   </div>
