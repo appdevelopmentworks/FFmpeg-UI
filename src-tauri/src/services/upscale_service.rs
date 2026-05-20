@@ -194,12 +194,22 @@ pub async fn run_ai_upscale(
     (emit_overall.lock().await)(15.0);
 
     // ── Phase 2: Real-ESRGAN アップスケール (15% → 85%) ──────────────────────
+    //
+    // 重要: realesrgan-x4plus / realesrgan-x4plus-anime は 4x専用に訓練された
+    // モデルで、`-s 2` や `-s 3` を渡すとタイル境界が破綻し出力が壊れる
+    // (タイル状のフレーム混在が発生)。そのため強制的に -s 4 で実行し、
+    // 最終的な目標解像度には Phase 3 の Lanczos 縮小で合わせる。
+    // realesr-animevideov3 は 2x/3x/4x それぞれ専用重みを持つので指定値を尊重。
+    let effective_scale = match params.model.as_str() {
+        "realesrgan-x4plus" | "realesrgan-x4plus-anime" => 4,
+        _ => params.scale,
+    };
     {
         let args: Vec<String> = vec![
             "-i".into(), frames_dir.to_string_lossy().to_string(),
             "-o".into(), upscaled_dir.to_string_lossy().to_string(),
             "-n".into(), params.model.clone(),
-            "-s".into(), params.scale.to_string(),
+            "-s".into(), effective_scale.to_string(),
             "-f".into(), "png".into(),
         ];
         let str_args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();

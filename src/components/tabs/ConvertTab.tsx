@@ -680,6 +680,12 @@ export function ConvertTab() {
                       <option value="4" style={{ backgroundColor: 'var(--bg-secondary)' }}>4x</option>
                     </select>
                   </div>
+                  {(state.aiModel === 'realesrgan-x4plus' ||
+                    state.aiModel === 'realesrgan-x4plus-anime') && (
+                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      ℹ {t('aiX4plusNote')}
+                    </span>
+                  )}
                   <span className="text-xs" style={{ color: 'var(--status-warning)' }}>
                     ⚠ {t('aiWarning')}
                   </span>

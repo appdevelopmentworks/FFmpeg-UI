@@ -76,7 +76,8 @@
     "aiModelVideo": "Fast (realesr-animevideov3)",
     "aiScale": "Scale",
     "aiWarning": "AI upscaling is slow — GPU recommended",
-    "aiNotInstalled": "Download the AI module from the setup screen to enable AI upscaling"
+    "aiNotInstalled": "Download the AI module from the setup screen to enable AI upscaling",
+    "aiX4plusNote": "x4plus models always process at 4x → final size is reached by Lanczos downscale (scale selection only affects filename)"
   },
   "trim": {
     "start": "Start",

@@ -76,7 +76,8 @@
     "aiModelVideo": "高速 (realesr-animevideov3)",
     "aiScale": "倍率",
     "aiWarning": "AI超解像は処理に時間がかかります（GPU推奨）",
-    "aiNotInstalled": "AI超解像を使うには設定画面からモジュールをダウンロードしてください"
+    "aiNotInstalled": "AI超解像を使うには設定画面からモジュールをダウンロードしてください",
+    "aiX4plusNote": "x4plus 系モデルは常に 4x で処理 → 目標解像度に Lanczos で縮小されます（倍率指定はファイル名にのみ反映）"
   },
   "trim": {
     "start": "開始",
