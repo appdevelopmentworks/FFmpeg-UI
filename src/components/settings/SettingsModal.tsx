@@ -61,6 +61,9 @@ export function SettingsModal({ open, onClose }: Props) {
   const [realesrganDownloading, setRealesrganDownloading] = useState(false);
   const [realesrganProgress, setRealesrganProgress] = useState(0);
   const [realesrganError, setRealesrganError] = useState<string | null>(null);
+  const [ytdlpUpdating, setYtdlpUpdating] = useState(false);
+  const [ytdlpUpdateProgress, setYtdlpUpdateProgress] = useState(0);
+  const [ytdlpUpdateError, setYtdlpUpdateError] = useState<string | null>(null);
 
   const refreshBinaryStatus = async () => {
     try {
@@ -162,6 +165,53 @@ export function SettingsModal({ open, onClose }: Props) {
       console.error('Update check failed:', err);
     } finally {
       setCheckingUpdates(false);
+    }
+  };
+
+  // yt-dlp 更新（再ダウンロード）の進捗イベントを購読
+  useEffect(() => {
+    if (!ytdlpUpdating) return;
+    let unlistenProgress: (() => void) | null = null;
+    let unlistenComplete: (() => void) | null = null;
+    let unlistenError: (() => void) | null = null;
+
+    (async () => {
+      unlistenProgress = await onSetupProgress((p) => {
+        if (p.tool === 'ytdlp') setYtdlpUpdateProgress(p.percent);
+      });
+      unlistenComplete = await onSetupComplete((c) => {
+        if (c.tool === 'ytdlp') {
+          setYtdlpUpdating(false);
+          setYtdlpUpdateProgress(100);
+          // 最新版を再取得・比較して表示を「最新」に更新
+          handleCheckUpdates();
+          refreshBinaryStatus();
+        }
+      });
+      unlistenError = await onSetupError((e) => {
+        if (e.tool === 'ytdlp') {
+          setYtdlpUpdating(false);
+          setYtdlpUpdateError(e.error);
+        }
+      });
+    })();
+
+    return () => {
+      unlistenProgress?.();
+      unlistenComplete?.();
+      unlistenError?.();
+    };
+  }, [ytdlpUpdating]);
+
+  const handleUpdateYtdlp = async () => {
+    setYtdlpUpdateError(null);
+    setYtdlpUpdateProgress(0);
+    setYtdlpUpdating(true);
+    try {
+      await downloadBinary('ytdlp');
+    } catch (err) {
+      setYtdlpUpdating(false);
+      setYtdlpUpdateError(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -498,14 +548,48 @@ export function SettingsModal({ open, onClose }: Props) {
                             }
                             FFmpeg: {updateInfo.ffmpegUpdate ? t('updateAvailable') : t('upToDate')}
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            {updateInfo.ytdlpUpdate
-                              ? <ChevronRight className="h-3 w-3" style={{ color: 'var(--status-warning)' }} />
-                              : <Check className="h-3 w-3" style={{ color: 'var(--status-success)' }} />
-                            }
-                            yt-dlp: {updateInfo.ytdlpUpdate ? t('updateAvailable') : t('upToDate')}
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              {updateInfo.ytdlpUpdate
+                                ? <ChevronRight className="h-3 w-3" style={{ color: 'var(--status-warning)' }} />
+                                : <Check className="h-3 w-3" style={{ color: 'var(--status-success)' }} />
+                              }
+                              yt-dlp: {updateInfo.ytdlpUpdate ? t('updateAvailable') : t('upToDate')}
+                            </div>
+                            {updateInfo.ytdlpUpdate && (
+                              <button
+                                onClick={handleUpdateYtdlp}
+                                disabled={ytdlpUpdating}
+                                className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all whitespace-nowrap"
+                                style={{
+                                  backgroundColor: ytdlpUpdating
+                                    ? 'var(--bg-tertiary)'
+                                    : 'var(--accent-cyan-dim)',
+                                  color: ytdlpUpdating
+                                    ? 'var(--text-tertiary)'
+                                    : 'var(--accent-cyan)',
+                                  border: '0.5px solid var(--border-default)',
+                                  cursor: ytdlpUpdating ? 'wait' : 'pointer',
+                                }}
+                              >
+                                {ytdlpUpdating ? (
+                                  <>
+                                    <span className="animate-spin">↻</span> {ytdlpUpdateProgress.toFixed(0)}%
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="h-3 w-3" /> {t('updateNow')}
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         </div>
+                      )}
+                      {ytdlpUpdateError && (
+                        <p className="text-[11px]" style={{ color: 'var(--status-error)' }}>
+                          {t('updateFailed')}: {ytdlpUpdateError}
+                        </p>
                       )}
                     </div>
 
