@@ -34,8 +34,12 @@ pub async fn download_binary(
         "ffmpeg" => binary_manager::install_ffmpeg(&app).await,
         "ytdlp" => binary_manager::install_ytdlp(&app).await,
         "realesrgan" => binary_manager::install_realesrgan(&app).await,
+        "deno" => binary_manager::install_deno(&app).await,
+        t if t.starts_with("model:") => binary_manager::install_ai_model(&app, &t["model:".len()..]).await,
         other => {
-            return Err(format!("Unknown tool: {other}. Use 'ffmpeg', 'ytdlp' or 'realesrgan'"));
+            return Err(format!(
+                "Unknown tool: {other}. Use 'ffmpeg', 'ytdlp', 'realesrgan', 'deno' or 'model:<id>'"
+            ));
         }
     };
 
@@ -46,6 +50,13 @@ pub async fn download_binary(
                     .to_string_lossy()
                     .to_string(),
                 "realesrgan" => crate::platform::realesrgan_path()
+                    .to_string_lossy()
+                    .to_string(),
+                t if t.starts_with("model:") => crate::platform::realesrgan_models_dir()
+                    .to_string_lossy()
+                    .to_string(),
+                "deno" => crate::config::binaries_dir()
+                    .join(crate::platform::DENO_BIN)
                     .to_string_lossy()
                     .to_string(),
                 _ => crate::platform::ytdlp_path()

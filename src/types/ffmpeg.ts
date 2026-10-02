@@ -35,7 +35,11 @@ export type ScalingAlgorithm = 'bilinear' | 'lanczos' | 'ai';
 export type AiUpscaleModel =
   | 'realesr-animevideov3'
   | 'realesrgan-x4plus'
-  | 'realesrgan-x4plus-anime';
+  | 'realesrgan-x4plus-anime'
+  // 以下は設定 → ツール から個別にダウンロードする追加モデル (すべて 4x 専用)
+  | 'realesr-general-x4v3'
+  | 'ultrasharp-4x'
+  | 'remacri-4x';
 
 export interface TrimSpec {
   start: number; // 秒

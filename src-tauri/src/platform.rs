@@ -67,6 +67,25 @@ pub fn realesrgan_path() -> PathBuf {
     resolve_binary(REALESRGAN_BIN)
 }
 
+#[cfg(target_os = "windows")]
+pub const DENO_BIN: &str = "deno.exe";
+#[cfg(not(target_os = "windows"))]
+pub const DENO_BIN: &str = "deno";
+
+#[cfg(target_os = "windows")]
+const JS_RUNTIMES: &[(&str, &str)] = &[("deno", DENO_BIN), ("node", "node.exe"), ("bun", "bun.exe")];
+#[cfg(not(target_os = "windows"))]
+const JS_RUNTIMES: &[(&str, &str)] = &[("deno", DENO_BIN), ("node", "node"), ("bun", "bun")];
+
+/// yt-dlp の YouTube 抽出 (EJS) に使う JavaScript ランタイムを探す。
+/// 優先順: deno → node → bun（それぞれ アプリ bin → PATH）
+pub fn js_runtime() -> Option<(&'static str, PathBuf)> {
+    JS_RUNTIMES.iter().find_map(|(name, bin)| {
+        let path = resolve_binary(bin);
+        path.exists().then(|| (*name, path))
+    })
+}
+
 /// Real-ESRGAN モデルファイル (.bin/.param) を配置するディレクトリ
 pub fn realesrgan_models_dir() -> PathBuf {
     config::binaries_dir().join("models")
@@ -129,6 +148,53 @@ pub const REALESRGAN_DOWNLOAD_URL: &str =
 #[cfg(not(any(target_os = "windows", target_os = "macos")))]
 pub const REALESRGAN_DOWNLOAD_URL: &str =
     "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip";
+
+// 追加の AI 超解像モデル (ncnn 形式 .param/.bin)。realesrgan-ncnn-vulkan の models/ に
+// `<id>.param` / `<id>.bin` で置けば `-n <id>` でそのまま使える。いずれも 4x 専用。
+// Upscayl が ncnn 変換・公開しているものを、内容が変わらないようコミット固定で取得する。
+// ライセンスはモデルごとに異なるため UI 側で表示する (UltraSharp / Remacri は CC BY-NC-SA 4.0)。
+pub const AI_MODEL_DOWNLOADS: &[(&str, &str)] = &[
+    (
+        "ultrasharp-4x",
+        "https://raw.githubusercontent.com/upscayl/upscayl/6cfaf45b2aae2847cba4f2313b57ca20a0ddd79c/resources/models/ultrasharp-4x",
+    ),
+    (
+        "remacri-4x",
+        "https://raw.githubusercontent.com/upscayl/upscayl/6cfaf45b2aae2847cba4f2313b57ca20a0ddd79c/resources/models/remacri-4x",
+    ),
+    (
+        "realesr-general-x4v3",
+        "https://raw.githubusercontent.com/upscayl/custom-models/500e6a0e8d60b1bf89c685391ef464f3b909b786/models/RealESRGAN_General_x4_v3",
+    ),
+];
+
+/// models/ に `<id>.param` と `<id>.bin` が揃っているか
+pub fn ai_model_installed(id: &str) -> bool {
+    let dir = realesrgan_models_dir();
+    dir.join(format!("{id}.param")).exists() && dir.join(format!("{id}.bin")).exists()
+}
+
+// Deno: yt-dlp の YouTube 抽出 (EJS) 用 JS ランタイム。
+// GitHub Releases の OS/アーキテクチャ別 ZIP。ZIP 直下に deno(.exe) 単体が入っている。
+#[cfg(target_os = "windows")]
+pub const DENO_DOWNLOAD_URL: &str =
+    "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip";
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub const DENO_DOWNLOAD_URL: &str =
+    "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-apple-darwin.zip";
+
+#[cfg(all(target_os = "macos", not(target_arch = "aarch64")))]
+pub const DENO_DOWNLOAD_URL: &str =
+    "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-apple-darwin.zip";
+
+#[cfg(all(not(any(target_os = "windows", target_os = "macos")), target_arch = "aarch64"))]
+pub const DENO_DOWNLOAD_URL: &str =
+    "https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip";
+
+#[cfg(all(not(any(target_os = "windows", target_os = "macos")), not(target_arch = "aarch64")))]
+pub const DENO_DOWNLOAD_URL: &str =
+    "https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip";
 
 // ── ZIP内でのバイナリエントリサフィックス ─────────────────────────────────────
 

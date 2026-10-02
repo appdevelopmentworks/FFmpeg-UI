@@ -4,7 +4,7 @@
     "settings": "Settings"
   },
   "tabs": {
-    "youtube": "YouTube",
+    "youtube": "Video DL",
     "convert": "Convert",
     "trim": "Trim",
     "merge": "Merge",
@@ -15,7 +15,7 @@
     "command": "Command"
   },
   "youtube": {
-    "urlPlaceholder": "Enter or paste YouTube URL",
+    "urlPlaceholder": "Enter or paste a YouTube / X URL",
     "fetch": "Fetch",
     "format": "Format",
     "quality": "Quality",
@@ -74,10 +74,19 @@
     "aiModelGeneral": "General (realesrgan-x4plus)",
     "aiModelAnime": "Anime (realesrgan-x4plus-anime)",
     "aiModelVideo": "Fast (realesr-animevideov3)",
+    "aiModelUltrasharp": "Ultra sharp (4x-UltraSharp)",
+    "aiModelUltrasharpDesc": "Strongest detail and texture; handles compressed sources well",
+    "aiModelRemacri": "Fine detail / photo (Remacri)",
+    "aiModelRemacriDesc": "Less smoothing; keeps photographic and live-action detail",
+    "aiModelGeneralV3": "General live-action, light (realesr-general-x4v3)",
+    "aiModelGeneralV3Desc": "Official lightweight Real-ESRGAN model for real-world footage; fast and natural",
+    "aiModelNonCommercial": "[non-commercial]",
+    "aiModelNotInstalled": "(not downloaded)",
+    "aiModelMoreHint": "More detailed models can be downloaded in Settings → Tools",
     "aiScale": "Scale",
     "aiWarning": "AI upscaling is slow — GPU recommended",
     "aiNotInstalled": "Download the AI module from the setup screen to enable AI upscaling",
-    "aiX4plusNote": "x4plus models always process at 4x → final size is reached by Lanczos downscale (scale selection only affects filename)"
+    "aiX4plusNote": "This model always processes at 4x → final size is reached by Lanczos downscale (scale selection only affects filename)"
   },
   "trim": {
     "start": "Start",
@@ -291,7 +300,17 @@
     "realesrganDescription": "Enable true image enhancement with Real-ESRGAN (~80MB)",
     "realesrganEnable": "Enable AI Super Resolution",
     "realesrganInstalled": "Installed",
-    "realesrganOptionalNote": "Other features remain available without this module"
+    "realesrganOptionalNote": "Other features remain available without this module",
+    "aiModelsTitle": "Additional models (high detail, 4x only)",
+    "aiModelDownload": "Download ({size}MB)",
+    "licenseCommercialOk": "Commercial OK",
+    "licenseNonCommercial": "Non-commercial",
+    "aiModelsLicenseNote": "\"Non-commercial\" models are licensed CC BY-NC-SA 4.0 and may only be used for personal, non-commercial purposes. For commercial use, choose a \"Commercial OK\" model. Models are fetched from Upscayl's published ncnn conversions",
+    "denoTitle": "JavaScript runtime (for YouTube)",
+    "denoDescription": "Required by yt-dlp to get all YouTube formats (Deno, ~40MB)",
+    "denoInstall": "Install Deno",
+    "denoDetected": "Using {runtime}",
+    "denoMissingNote": "Without it, some YouTube formats may be unavailable"
   },
   "common": {
     "outputDir": "Output Directory",

@@ -26,11 +26,132 @@ import {
   resetSettings,
   checkBinaries,
   downloadBinary,
+  type InstallableTool,
 } from '@/lib/tauri/commands';
 import type { ThemeMode, AppLocale, BinaryStatus } from '@/types/settings';
-import { onSetupProgress, onSetupComplete, onSetupError } from '@/lib/tauri/events';
+import { onSetupProgress } from '@/lib/tauri/events';
+import { AI_UPSCALE_MODELS } from '@/lib/ffmpeg/presets';
 
 type SettingsSection = 'general' | 'output' | 'performance' | 'tools' | 'data';
+
+/**
+ * download_binary を実行し、インストール状態を追跡する。
+ * 完了/失敗は invoke の結果で判定し、進捗だけ setup:download-progress イベントから受け取る。
+ */
+function useBinaryInstall(tool: InstallableTool, onComplete: () => void) {
+  const [installing, setInstalling] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!installing) return;
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    onSetupProgress((p) => {
+      if (p.tool === tool) setProgress(p.percent);
+    }).then((fn) => {
+      if (cancelled) fn();
+      else unlisten = fn;
+    });
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, [installing, tool]);
+
+  const install = async () => {
+    setError(null);
+    setProgress(0);
+    setInstalling(true);
+    try {
+      await downloadBinary(tool);
+      setProgress(100);
+      onComplete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  return { installing, progress, error, install };
+}
+
+/** 追加 AI 超解像モデル 1 件分の行（ダウンロードボタン・ライセンス表示） */
+function AiModelRow({
+  model,
+  installed,
+  onInstalled,
+}: {
+  model: (typeof AI_UPSCALE_MODELS)[number];
+  installed: boolean;
+  onInstalled: () => void;
+}) {
+  const tConvert = useTranslations('convert');
+  const tSetup = useTranslations('setup');
+  const { installing, progress, error, install } = useBinaryInstall(`model:${model.id}`, onInstalled);
+
+  return (
+    <div className="space-y-1 pt-2" style={{ borderTop: '0.5px solid var(--border-default)' }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <p className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-primary)' }}>
+            {tConvert(model.labelKey)}
+            <span
+              className="rounded px-1 text-[10px]"
+              style={{
+                color: model.commercialOk ? 'var(--status-success)' : 'var(--status-warning)',
+                border: '0.5px solid currentColor',
+              }}
+            >
+              {model.commercialOk ? tSetup('licenseCommercialOk') : tSetup('licenseNonCommercial')}
+            </span>
+          </p>
+          {model.descKey && (
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+              {tConvert(model.descKey)}
+            </p>
+          )}
+        </div>
+        {installed ? (
+          <span
+            className="flex items-center gap-1 text-xs whitespace-nowrap"
+            style={{ color: 'var(--status-success)' }}
+          >
+            <Check className="h-3 w-3" /> {tSetup('realesrganInstalled')}
+          </span>
+        ) : (
+          <button
+            onClick={install}
+            disabled={installing}
+            className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all whitespace-nowrap"
+            style={{
+              backgroundColor: installing ? 'var(--bg-tertiary)' : 'var(--accent-cyan-dim)',
+              color: installing ? 'var(--text-tertiary)' : 'var(--accent-cyan)',
+              border: '0.5px solid var(--border-default)',
+              cursor: installing ? 'wait' : 'pointer',
+            }}
+          >
+            {installing ? (
+              <>
+                <span className="animate-spin">↻</span> {progress.toFixed(0)}%
+              </>
+            ) : (
+              <>
+                <Download className="h-3 w-3" /> {tSetup('aiModelDownload', { size: model.sizeMb ?? 0 })}
+              </>
+            )}
+          </button>
+        )}
+      </div>
+      {error && (
+        <p className="text-[11px]" style={{ color: 'var(--status-error)' }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 const SECTIONS: { id: SettingsSection; icon: React.ReactNode; labelKey: string }[] = [
   { id: 'general', icon: <Sliders className="h-3.5 w-3.5" />, labelKey: 'general' },
@@ -58,12 +179,6 @@ export function SettingsModal({ open, onClose }: Props) {
   const [updateInfo, setUpdateInfo] = useState<{ ffmpegUpdate: boolean; ytdlpUpdate: boolean } | null>(null);
   const [checkingUpdates, setCheckingUpdates] = useState(false);
   const [binaries, setBinaries] = useState<BinaryStatus | null>(null);
-  const [realesrganDownloading, setRealesrganDownloading] = useState(false);
-  const [realesrganProgress, setRealesrganProgress] = useState(0);
-  const [realesrganError, setRealesrganError] = useState<string | null>(null);
-  const [ytdlpUpdating, setYtdlpUpdating] = useState(false);
-  const [ytdlpUpdateProgress, setYtdlpUpdateProgress] = useState(0);
-  const [ytdlpUpdateError, setYtdlpUpdateError] = useState<string | null>(null);
 
   const refreshBinaryStatus = async () => {
     try {
@@ -78,51 +193,6 @@ export function SettingsModal({ open, onClose }: Props) {
   useEffect(() => {
     if (open && section === 'tools') refreshBinaryStatus();
   }, [open, section]);
-
-  // realesrgan のダウンロード進捗イベントを購読
-  useEffect(() => {
-    if (!realesrganDownloading) return;
-    let unlistenProgress: (() => void) | null = null;
-    let unlistenComplete: (() => void) | null = null;
-    let unlistenError: (() => void) | null = null;
-
-    (async () => {
-      unlistenProgress = await onSetupProgress((p) => {
-        if (p.tool === 'realesrgan') setRealesrganProgress(p.percent);
-      });
-      unlistenComplete = await onSetupComplete((c) => {
-        if (c.tool === 'realesrgan') {
-          setRealesrganDownloading(false);
-          setRealesrganProgress(100);
-          refreshBinaryStatus();
-        }
-      });
-      unlistenError = await onSetupError((e) => {
-        if (e.tool === 'realesrgan') {
-          setRealesrganDownloading(false);
-          setRealesrganError(e.error);
-        }
-      });
-    })();
-
-    return () => {
-      unlistenProgress?.();
-      unlistenComplete?.();
-      unlistenError?.();
-    };
-  }, [realesrganDownloading]);
-
-  const handleInstallRealesrgan = async () => {
-    setRealesrganError(null);
-    setRealesrganProgress(0);
-    setRealesrganDownloading(true);
-    try {
-      await downloadBinary('realesrgan');
-    } catch (err) {
-      setRealesrganDownloading(false);
-      setRealesrganError(err instanceof Error ? err.message : String(err));
-    }
-  };
 
   // Load settings on open
   useEffect(() => {
@@ -168,52 +238,13 @@ export function SettingsModal({ open, onClose }: Props) {
     }
   };
 
-  // yt-dlp 更新（再ダウンロード）の進捗イベントを購読
-  useEffect(() => {
-    if (!ytdlpUpdating) return;
-    let unlistenProgress: (() => void) | null = null;
-    let unlistenComplete: (() => void) | null = null;
-    let unlistenError: (() => void) | null = null;
-
-    (async () => {
-      unlistenProgress = await onSetupProgress((p) => {
-        if (p.tool === 'ytdlp') setYtdlpUpdateProgress(p.percent);
-      });
-      unlistenComplete = await onSetupComplete((c) => {
-        if (c.tool === 'ytdlp') {
-          setYtdlpUpdating(false);
-          setYtdlpUpdateProgress(100);
-          // 最新版を再取得・比較して表示を「最新」に更新
-          handleCheckUpdates();
-          refreshBinaryStatus();
-        }
-      });
-      unlistenError = await onSetupError((e) => {
-        if (e.tool === 'ytdlp') {
-          setYtdlpUpdating(false);
-          setYtdlpUpdateError(e.error);
-        }
-      });
-    })();
-
-    return () => {
-      unlistenProgress?.();
-      unlistenComplete?.();
-      unlistenError?.();
-    };
-  }, [ytdlpUpdating]);
-
-  const handleUpdateYtdlp = async () => {
-    setYtdlpUpdateError(null);
-    setYtdlpUpdateProgress(0);
-    setYtdlpUpdating(true);
-    try {
-      await downloadBinary('ytdlp');
-    } catch (err) {
-      setYtdlpUpdating(false);
-      setYtdlpUpdateError(err instanceof Error ? err.message : String(err));
-    }
-  };
+  const realesrgan = useBinaryInstall('realesrgan', refreshBinaryStatus);
+  // 更新後は最新版を再取得・比較して表示を「最新」に戻す
+  const ytdlpUpdate = useBinaryInstall('ytdlp', () => {
+    handleCheckUpdates();
+    refreshBinaryStatus();
+  });
+  const deno = useBinaryInstall('deno', refreshBinaryStatus);
 
   return (
     <AnimatePresence>
@@ -558,23 +589,23 @@ export function SettingsModal({ open, onClose }: Props) {
                             </div>
                             {updateInfo.ytdlpUpdate && (
                               <button
-                                onClick={handleUpdateYtdlp}
-                                disabled={ytdlpUpdating}
+                                onClick={ytdlpUpdate.install}
+                                disabled={ytdlpUpdate.installing}
                                 className="flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all whitespace-nowrap"
                                 style={{
-                                  backgroundColor: ytdlpUpdating
+                                  backgroundColor: ytdlpUpdate.installing
                                     ? 'var(--bg-tertiary)'
                                     : 'var(--accent-cyan-dim)',
-                                  color: ytdlpUpdating
+                                  color: ytdlpUpdate.installing
                                     ? 'var(--text-tertiary)'
                                     : 'var(--accent-cyan)',
                                   border: '0.5px solid var(--border-default)',
-                                  cursor: ytdlpUpdating ? 'wait' : 'pointer',
+                                  cursor: ytdlpUpdate.installing ? 'wait' : 'pointer',
                                 }}
                               >
-                                {ytdlpUpdating ? (
+                                {ytdlpUpdate.installing ? (
                                   <>
-                                    <span className="animate-spin">↻</span> {ytdlpUpdateProgress.toFixed(0)}%
+                                    <span className="animate-spin">↻</span> {ytdlpUpdate.progress.toFixed(0)}%
                                   </>
                                 ) : (
                                   <>
@@ -586,9 +617,74 @@ export function SettingsModal({ open, onClose }: Props) {
                           </div>
                         </div>
                       )}
-                      {ytdlpUpdateError && (
+                      {ytdlpUpdate.error && (
                         <p className="text-[11px]" style={{ color: 'var(--status-error)' }}>
-                          {t('updateFailed')}: {ytdlpUpdateError}
+                          {t('updateFailed')}: {ytdlpUpdate.error}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* JS ランタイム (yt-dlp の YouTube 抽出用 / Deno) */}
+                    <div
+                      className="space-y-2 rounded-lg p-3"
+                      style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '0.5px solid var(--border-default)',
+                      }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <label className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+                            {tSetup('denoTitle')}
+                          </label>
+                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
+                            {tSetup('denoDescription')}
+                          </p>
+                        </div>
+                        {binaries?.jsRuntime ? (
+                          <span
+                            className="flex items-center gap-1 text-xs whitespace-nowrap"
+                            style={{ color: 'var(--status-success)' }}
+                            title={binaries.jsRuntimePath}
+                          >
+                            <Check className="h-3 w-3" /> {tSetup('denoDetected', { runtime: binaries.jsRuntime })}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={deno.install}
+                            disabled={deno.installing || !binaries}
+                            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap"
+                            style={{
+                              backgroundColor: deno.installing
+                                ? 'var(--bg-tertiary)'
+                                : 'var(--accent-cyan-dim)',
+                              color: deno.installing
+                                ? 'var(--text-tertiary)'
+                                : 'var(--accent-cyan)',
+                              border: '0.5px solid var(--border-default)',
+                              cursor: deno.installing ? 'wait' : 'pointer',
+                            }}
+                          >
+                            {deno.installing ? (
+                              <>
+                                <span className="animate-spin">↻</span> {deno.progress.toFixed(0)}%
+                              </>
+                            ) : (
+                              <>
+                                <Download className="h-3 w-3" /> {tSetup('denoInstall')}
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {deno.error && (
+                        <p className="text-[11px]" style={{ color: 'var(--status-error)' }}>
+                          {deno.error}
+                        </p>
+                      )}
+                      {binaries && !binaries.jsRuntime && !deno.installing && (
+                        <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                          {tSetup('denoMissingNote')}
                         </p>
                       )}
                     </div>
@@ -619,23 +715,23 @@ export function SettingsModal({ open, onClose }: Props) {
                           </span>
                         ) : (
                           <button
-                            onClick={handleInstallRealesrgan}
-                            disabled={realesrganDownloading}
+                            onClick={realesrgan.install}
+                            disabled={realesrgan.installing}
                             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-all whitespace-nowrap"
                             style={{
-                              backgroundColor: realesrganDownloading
+                              backgroundColor: realesrgan.installing
                                 ? 'var(--bg-tertiary)'
                                 : 'var(--accent-cyan-dim)',
-                              color: realesrganDownloading
+                              color: realesrgan.installing
                                 ? 'var(--text-tertiary)'
                                 : 'var(--accent-cyan)',
                               border: '0.5px solid var(--border-default)',
-                              cursor: realesrganDownloading ? 'wait' : 'pointer',
+                              cursor: realesrgan.installing ? 'wait' : 'pointer',
                             }}
                           >
-                            {realesrganDownloading ? (
+                            {realesrgan.installing ? (
                               <>
-                                <span className="animate-spin">↻</span> {realesrganProgress.toFixed(0)}%
+                                <span className="animate-spin">↻</span> {realesrgan.progress.toFixed(0)}%
                               </>
                             ) : (
                               <>
@@ -645,15 +741,35 @@ export function SettingsModal({ open, onClose }: Props) {
                           </button>
                         )}
                       </div>
-                      {realesrganError && (
+                      {realesrgan.error && (
                         <p className="text-[11px]" style={{ color: 'var(--status-error)' }}>
-                          {realesrganError}
+                          {realesrgan.error}
                         </p>
                       )}
-                      {!binaries?.realesrganInstalled && !realesrganDownloading && (
+                      {!binaries?.realesrganInstalled && !realesrgan.installing && (
                         <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                           {tSetup('realesrganOptionalNote')}
                         </p>
+                      )}
+
+                      {/* 追加モデル（Real-ESRGAN 本体のインストール後に利用可能） */}
+                      {binaries?.realesrganInstalled && (
+                        <div className="space-y-2 pt-1">
+                          <p className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                            {tSetup('aiModelsTitle')}
+                          </p>
+                          {AI_UPSCALE_MODELS.filter((m) => m.extra).map((m) => (
+                            <AiModelRow
+                              key={m.id}
+                              model={m}
+                              installed={binaries.aiModels.includes(m.id)}
+                              onInstalled={refreshBinaryStatus}
+                            />
+                          ))}
+                          <p className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
+                            {tSetup('aiModelsLicenseNote')}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>

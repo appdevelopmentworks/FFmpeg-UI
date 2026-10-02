@@ -74,11 +74,12 @@ struct RawVideoInfo {
 // ── 変換関数 ──────────────────────────────────────────────────────────────────
 
 fn convert_format(raw: RawFormat) -> DownloadFormat {
-    let vcodec = raw.vcodec.as_deref().unwrap_or("none");
-    let acodec = raw.acodec.as_deref().unwrap_or("none");
-
-    let has_video = vcodec != "none" && !vcodec.is_empty();
-    let has_audio = acodec != "none" && !acodec.is_empty();
+    // yt-dlp の規約: "none" は「無し」、未設定 (null) は「不明」。
+    // X などはコーデックを返さない映像+音声 MP4 が主力なので、yt-dlp 自身と同様に
+    // 不明は「有り」とみなす（YouTube は常にコーデックが入るので影響なし）。
+    let audio_only = raw.resolution.as_deref() == Some("audio only");
+    let has_video = raw.vcodec.as_deref() != Some("none") && !audio_only;
+    let has_audio = raw.acodec.as_deref() != Some("none");
 
     // "1920x1080" → height = 1080 (フォーマット注記として使用)
     let format_note = raw.format_note.unwrap_or_else(|| {
@@ -158,6 +159,17 @@ fn ytdlp_bin() -> AppResult<String> {
     }
 }
 
+/// YouTube の JS チャレンジ解決用ランタイムを yt-dlp に渡す引数（見つからなければ空）
+fn js_runtime_args() -> Vec<String> {
+    match platform::js_runtime() {
+        Some((name, path)) => vec![
+            "--js-runtimes".into(),
+            format!("{}:{}", name, path.to_string_lossy()),
+        ],
+        None => vec![],
+    }
+}
+
 // ── メタデータ取得 ────────────────────────────────────────────────────────────
 
 /// YouTube URL から動画メタデータを取得する
@@ -165,11 +177,11 @@ fn ytdlp_bin() -> AppResult<String> {
 pub async fn get_video_info(url: &str) -> AppResult<VideoInfo> {
     let bin = ytdlp_bin()?;
 
-    let output = crate::services::process_manager::run_command(
-        &bin,
-        &["--dump-json", "--no-playlist", "--no-warnings", url],
-    )
-    .await?;
+    let mut args = js_runtime_args();
+    args.extend(["--dump-json", "--no-playlist", "--no-warnings", url].map(String::from));
+    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+    let output = crate::services::process_manager::run_command(&bin, &arg_refs).await?;
 
     if !output.success() {
         let stderr = output.stderr.clone();
@@ -188,7 +200,7 @@ pub async fn get_video_info(url: &str) -> AppResult<VideoInfo> {
     // プレイリスト URL を弾く
     if raw._type.as_deref() == Some("playlist") {
         return Err(AppError::InvalidInput {
-            message: "Playlist URLs are not supported. Please provide a single video URL.".to_string(),
+            message: "複数の動画を含むURLには未対応です。X の場合はポストURLの末尾に /video/1 などを付けて1本ずつ指定してください".to_string(),
         });
     }
 
@@ -202,11 +214,11 @@ pub async fn get_video_info(url: &str) -> AppResult<VideoInfo> {
 pub async fn get_stream_url(url: &str) -> AppResult<String> {
     let bin = ytdlp_bin()?;
 
-    let output = crate::services::process_manager::run_command(
-        &bin,
-        &["-g", "--no-playlist", "--no-warnings", url],
-    )
-    .await?;
+    let mut args = js_runtime_args();
+    args.extend(["-g", "--no-playlist", "--no-warnings", url].map(String::from));
+    let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
+
+    let output = crate::services::process_manager::run_command(&bin, &arg_refs).await?;
 
     if !output.success() {
         let stderr = output.stderr.clone();
@@ -353,14 +365,28 @@ fn classify_ytdlp_error(stderr: &str) -> String {
     if stderr.contains("Unable to extract") {
         return "動画情報の取得に失敗しました".to_string();
     }
+    // X (Twitter)
+    if stderr.contains("No video could be found in this tweet") {
+        return "このポストには動画が含まれていません".to_string();
+    }
+    if stderr.contains("requires authentication") || stderr.contains("NSFW tweet") {
+        return "ログインが必要なポストです（センシティブ・非公開ポストには未対応）".to_string();
+    }
+    // YouTube 側の仕様変更で古い yt-dlp の取得 URL が拒否されるケースが大半
+    if stderr.contains("HTTP Error 403") {
+        return "YouTube にダウンロードを拒否されました (HTTP 403)。設定 → ツール から yt-dlp を最新版に更新してください".to_string();
+    }
 
-    // 最初のエラー行を返す
+    // 最後の ERROR 行が実際の失敗理由（WARNING 行は失敗理由ではないので無視）
+    if let Some(line) = stderr.lines().rev().find(|l| l.contains("ERROR:")) {
+        return line.split_once("ERROR: ").map_or(line, |(_, msg)| msg).trim().to_string();
+    }
     stderr
         .lines()
-        .find(|l| l.contains("ERROR:") || !l.trim().is_empty())
-        .unwrap_or("yt-dlp error")
-        .trim_start_matches("ERROR: ")
-        .to_string()
+        .rev()
+        .find(|l| !l.trim().is_empty() && !l.contains("WARNING:"))
+        .map(|l| l.trim().to_string())
+        .unwrap_or_else(|| "yt-dlp error".to_string())
 }
 
 // ── ダウンロード実行 ──────────────────────────────────────────────────────────
@@ -400,7 +426,8 @@ pub async fn start_download(
     };
 
     // yt-dlp 引数を構築
-    let mut args: Vec<String> = vec![
+    let mut args: Vec<String> = js_runtime_args();
+    args.extend([
         "--no-playlist".into(),
         "--newline".into(), // 1行ずつ進捗を出力
         "--progress".into(),
@@ -408,7 +435,7 @@ pub async fn start_download(
         format_id.clone(),
         "-o".into(),
         output_template.clone(),
-    ];
+    ]);
 
     if let Some(fmt) = merge_format {
         args.push("--merge-output-format".into());

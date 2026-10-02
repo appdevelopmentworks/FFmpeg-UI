@@ -29,6 +29,7 @@ import {
   CONTAINERS,
   RESOLUTION_PRESETS,
   FPS_OPTIONS,
+  AI_UPSCALE_MODELS,
 } from '@/lib/ffmpeg/presets';
 
 // ── State ──────────────────────────────────────────────────────────────────────
@@ -99,11 +100,7 @@ function joinPath(dir: string, file: string): string {
 }
 
 function aiModelShort(m: AiUpscaleModel): string {
-  switch (m) {
-    case 'realesrgan-x4plus': return 'x4plus';
-    case 'realesrgan-x4plus-anime': return 'x4anime';
-    case 'realesr-animevideov3': return 'animev3';
-  }
+  return AI_UPSCALE_MODELS.find((x) => x.id === m)?.short ?? 'ai';
 }
 
 /** スケーリング設定からファイル名末尾サフィックスを返す */
@@ -195,6 +192,22 @@ export function ConvertTab() {
   const [isConverting, setIsConverting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** インストール済みの追加 AI モデル (null = 未取得) */
+  const [installedAiModels, setInstalledAiModels] = useState<string[] | null>(null);
+
+  // AI 超解像を選んだときに追加モデルのインストール状況を取得
+  useEffect(() => {
+    if (state.scalingAlgorithm !== 'ai') return;
+    (async () => {
+      try {
+        const { checkBinaries } = await import('@/lib/tauri/commands');
+        const status = await checkBinaries();
+        setInstalledAiModels(status.aiModels);
+      } catch {
+        // Tauri 環境外
+      }
+    })();
+  }, [state.scalingAlgorithm]);
 
   // 設定（デフォルト出力先）— 未ロードならロード
   const settingsOutputDir = useSettingsStore((s) => s.outputDir);
@@ -655,15 +668,21 @@ export function ConvertTab() {
                       value={state.aiModel}
                       onChange={(e) => update('aiModel', e.target.value as AiUpscaleModel)}
                     >
-                      <option value="realesrgan-x4plus" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                        {t('aiModelGeneral')}
-                      </option>
-                      <option value="realesrgan-x4plus-anime" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                        {t('aiModelAnime')}
-                      </option>
-                      <option value="realesr-animevideov3" style={{ backgroundColor: 'var(--bg-secondary)' }}>
-                        {t('aiModelVideo')}
-                      </option>
+                      {AI_UPSCALE_MODELS.map((m) => {
+                        const missing = m.extra && !installedAiModels?.includes(m.id);
+                        return (
+                          <option
+                            key={m.id}
+                            value={m.id}
+                            disabled={missing}
+                            style={{ backgroundColor: 'var(--bg-secondary)' }}
+                          >
+                            {t(m.labelKey)}
+                            {!m.commercialOk && ` ${t('aiModelNonCommercial')}`}
+                            {missing && ` ${t('aiModelNotInstalled')}`}
+                          </option>
+                        );
+                      })}
                     </select>
                     <select
                       className="w-20 appearance-none rounded-md pl-2.5 pr-7 text-xs outline-none h-7"
@@ -680,10 +699,15 @@ export function ConvertTab() {
                       <option value="4" style={{ backgroundColor: 'var(--bg-secondary)' }}>4x</option>
                     </select>
                   </div>
-                  {(state.aiModel === 'realesrgan-x4plus' ||
-                    state.aiModel === 'realesrgan-x4plus-anime') && (
+                  {state.aiModel !== 'realesr-animevideov3' && (
                     <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
                       ℹ {t('aiX4plusNote')}
+                    </span>
+                  )}
+                  {installedAiModels &&
+                    AI_UPSCALE_MODELS.some((m) => m.extra && !installedAiModels.includes(m.id)) && (
+                    <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                      ℹ {t('aiModelMoreHint')}
                     </span>
                   )}
                   <span className="text-xs" style={{ color: 'var(--status-warning)' }}>

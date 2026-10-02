@@ -20,6 +20,7 @@ pub struct AiUpscaleParams {
     pub input_path:    String,
     pub output_path:   String,
     /// "realesr-animevideov3" | "realesrgan-x4plus" | "realesrgan-x4plus-anime"
+    /// または platform::AI_MODEL_DOWNLOADS の追加モデル ID
     pub model:         String,
     /// 2 | 3 | 4
     pub scale:         u32,
@@ -92,6 +93,16 @@ pub async fn run_ai_upscale(
     }
     if !models_dir.exists() {
         return Err(AppError::BinaryNotFound { tool: "realesrgan-models".into() });
+    }
+    // 追加モデルは設定画面から個別にダウンロードする必要がある
+    let is_extra_model = platform::AI_MODEL_DOWNLOADS.iter().any(|(id, _)| *id == params.model);
+    if is_extra_model && !platform::ai_model_installed(&params.model) {
+        return Err(AppError::InvalidInput {
+            message: format!(
+                "AIモデル「{}」がインストールされていません。設定 → ツール からダウンロードしてください",
+                params.model
+            ),
+        });
     }
 
     // 入力情報取得 (FPS, duration)
@@ -200,10 +211,8 @@ pub async fn run_ai_upscale(
     // (タイル状のフレーム混在が発生)。そのため強制的に -s 4 で実行し、
     // 最終的な目標解像度には Phase 3 の Lanczos 縮小で合わせる。
     // realesr-animevideov3 は 2x/3x/4x それぞれ専用重みを持つので指定値を尊重。
-    let effective_scale = match params.model.as_str() {
-        "realesrgan-x4plus" | "realesrgan-x4plus-anime" => 4,
-        _ => params.scale,
-    };
+    // 追加モデル (UltraSharp / Remacri / general-x4v3) も 4x 専用なので、それ以外は 4 固定。
+    let effective_scale = if params.model == "realesr-animevideov3" { params.scale } else { 4 };
     {
         let args: Vec<String> = vec![
             "-i".into(), frames_dir.to_string_lossy().to_string(),
@@ -285,10 +294,10 @@ pub async fn run_ai_upscale(
             "-shortest".into(),
         ];
 
-        // 目標解像度が指定されていればLanczosでフィット
+        // 目標解像度が指定されていればLanczosでフィット（縦横比が違えば中央切り抜き）
         if let (Some(w), Some(h)) = (params.target_width, params.target_height) {
             args.push("-vf".into());
-            args.push(format!("scale={w}:{h}:flags=lanczos"));
+            args.push(crate::services::ffmpeg_service::scale_crop_filter(w, h, true));
         }
 
         args.push(params.output_path.clone());

@@ -621,6 +621,16 @@ pub async fn extract_streams(
 // ── build_command ─────────────────────────────────────────────────────────────
 
 /// FFmpegCommandからコマンド引数配列を生成する
+/// 指定解像度へのリサイズフィルタ。縦横比が異なる場合は歪ませず、
+/// 画面いっぱいに拡大してはみ出た部分を中央で切り抜く (横長 → 縦長など)。
+/// 拡大時の端数丸めで SAR が 10240:10239 のようにずれるため setsar=1 で正規化する。
+pub fn scale_crop_filter(width: u32, height: u32, lanczos: bool) -> String {
+    let flags = if lanczos { ":flags=lanczos" } else { "" };
+    format!(
+        "scale={width}:{height}:force_original_aspect_ratio=increase{flags},crop={width}:{height},setsar=1"
+    )
+}
+
 pub fn build_command(cmd: &crate::models::ffmpeg::FFmpegCommand) -> Vec<String> {
     let mut args = vec!["-y".to_string()];
 
@@ -677,8 +687,7 @@ pub fn build_command(cmd: &crate::models::ffmpeg::FFmpegCommand) -> Vec<String> 
         // AI scaling is handled by a separate pipeline; skip scale here.
         let alg = res.algorithm.as_deref().unwrap_or("");
         if alg != "ai" {
-            let flags = if alg == "lanczos" { ":flags=lanczos" } else { "" };
-            vf_parts.push(format!("scale={}:{}{}", res.width, res.height, flags));
+            vf_parts.push(scale_crop_filter(res.width, res.height, alg == "lanczos"));
         }
     }
     for f in cmd.filters.iter().filter(|f| {

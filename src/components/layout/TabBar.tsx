@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { motion } from 'framer-motion';
 import {
-  Youtube,
+  Download,
   RefreshCw,
   Scissors,
   Combine,
@@ -17,7 +17,7 @@ import { useUIStore } from '@/stores/uiStore';
 import type { TabId, TabDefinition } from '@/types/ui';
 
 const TABS: TabDefinition[] = [
-  { id: 'youtube', labelKey: 'tabs.youtube', icon: 'Youtube' },
+  { id: 'youtube', labelKey: 'tabs.youtube', icon: 'Download' },
   { id: 'convert', labelKey: 'tabs.convert', icon: 'RefreshCw' },
   { id: 'trim', labelKey: 'tabs.trim', icon: 'Scissors' },
   { id: 'merge', labelKey: 'tabs.merge', icon: 'Combine' },
@@ -29,7 +29,7 @@ const TABS: TabDefinition[] = [
 ];
 
 const ICON_MAP = {
-  Youtube,
+  Download,
   RefreshCw,
   Scissors,
   Combine,

@@ -26,6 +26,11 @@ export interface BinaryStatus {
   realesrganInstalled: boolean;
   realesrganVersion?: string;
   realesrganPath?: string;
+  /** yt-dlp が使う JS ランタイム名 ("deno" / "node" / "bun")。未検出なら undefined */
+  jsRuntime?: string;
+  jsRuntimePath?: string;
+  /** インストール済みの追加 AI 超解像モデル ID */
+  aiModels: string[];
 }
 
 /** アップデート情報 */

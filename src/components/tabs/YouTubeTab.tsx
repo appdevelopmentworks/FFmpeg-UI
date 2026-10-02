@@ -78,6 +78,22 @@ function extractVideoId(url: string): string | null {
   return null;
 }
 
+/** 貼り付け時に自動取得する対応サイトのURLか */
+function isSupportedVideoUrl(url: string): boolean {
+  return (
+    url.includes('youtube.com/watch') ||
+    url.includes('youtube.com/shorts/') ||
+    url.includes('youtu.be/') ||
+    /(?:^|\/\/|\.)(?:x|twitter)\.com\/[^/]+\/status\/\d+/.test(url)
+  );
+}
+
+/** "1280x720" → 720 */
+function formatHeight(f: DownloadFormat): number {
+  const m = f.resolution?.match(/x(\d+)$/);
+  return m ? Number(m[1]) : 0;
+}
+
 type ModeFilter = 'best' | 'videoAndAudio' | 'videoOnly' | 'audioOnly';
 
 function filterFormats(formats: DownloadFormat[], mode: ModeFilter): DownloadFormat[] {
@@ -91,7 +107,12 @@ function filterFormats(formats: DownloadFormat[], mode: ModeFilter): DownloadFor
     .sort((a, b) => {
       const sizeA = a.filesize ?? a.filesizeApprox ?? 0;
       const sizeB = b.filesize ?? b.filesizeApprox ?? 0;
-      return sizeB - sizeA;
+      // サイズ不明のフォーマット (X の HLS 等) は解像度 → ビットレートで比較
+      return (
+        sizeB - sizeA ||
+        formatHeight(b) - formatHeight(a) ||
+        (b.videoBitrate ?? b.audioBitrate ?? 0) - (a.videoBitrate ?? a.audioBitrate ?? 0)
+      );
     });
 }
 
@@ -204,7 +225,7 @@ export function YouTubeTab() {
   const handlePaste = useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
       const pasted = e.clipboardData.getData('text').trim();
-      if (pasted.includes('youtube.com/watch') || pasted.includes('youtu.be/')) {
+      if (isSupportedVideoUrl(pasted)) {
         setInputUrl(pasted);
         fetchInfo(pasted);
       }

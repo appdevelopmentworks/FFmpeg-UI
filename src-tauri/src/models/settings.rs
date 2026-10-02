@@ -70,6 +70,11 @@ pub struct BinaryStatus {
     pub realesrgan_installed: bool,
     pub realesrgan_version: Option<String>,
     pub realesrgan_path: Option<String>,
+    /// yt-dlp が使う JS ランタイム名 ("deno" / "node" / "bun")。未検出なら None
+    pub js_runtime: Option<String>,
+    pub js_runtime_path: Option<String>,
+    /// インストール済みの追加 AI 超解像モデル ID (platform::AI_MODEL_DOWNLOADS のうち)
+    pub ai_models: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

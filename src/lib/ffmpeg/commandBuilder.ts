@@ -54,8 +54,10 @@ export function buildArgs(cmd: FFmpegCommand): string[] {
     const alg = cmd.resolution.algorithm;
     // AI is handled by a separate pipeline (execute_ai_upscale); don't emit scale here.
     if (alg !== 'ai') {
+      // Rust 側 scale_crop_filter と同じ: 縦横比が違えば拡大して中央を切り抜く
+      const { width: w, height: h } = cmd.resolution;
       const flags = alg === 'lanczos' ? ':flags=lanczos' : '';
-      vfParts.push(`scale=${cmd.resolution.width}:${cmd.resolution.height}${flags}`);
+      vfParts.push(`scale=${w}:${h}:force_original_aspect_ratio=increase${flags},crop=${w}:${h},setsar=1`);
     }
   }
   for (const f of cmd.filters.filter((f) => f.enabled && f.category === 'video')) {

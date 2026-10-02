@@ -1,4 +1,36 @@
 import type { Preset } from '@/types/preset';
+import type { AiUpscaleModel } from '@/types/ffmpeg';
+
+/**
+ * AI 超解像モデル一覧。labelKey / descKey は i18n の convert 名前空間。
+ * extra: 設定 → ツール から個別にダウンロードする追加モデル (Rust: platform::AI_MODEL_DOWNLOADS)
+ * short: 出力ファイル名サフィックス用 (英小文字・数字のみ)
+ */
+export const AI_UPSCALE_MODELS: {
+  id: AiUpscaleModel;
+  labelKey: string;
+  short: string;
+  extra: boolean;
+  commercialOk: boolean;
+  sizeMb?: number;
+  descKey?: string;
+}[] = [
+  { id: 'realesrgan-x4plus', labelKey: 'aiModelGeneral', short: 'x4plus', extra: false, commercialOk: true },
+  { id: 'realesrgan-x4plus-anime', labelKey: 'aiModelAnime', short: 'x4anime', extra: false, commercialOk: true },
+  { id: 'realesr-animevideov3', labelKey: 'aiModelVideo', short: 'animev3', extra: false, commercialOk: true },
+  {
+    id: 'ultrasharp-4x', labelKey: 'aiModelUltrasharp', short: 'ultrasharp',
+    extra: true, commercialOk: false, sizeMb: 33, descKey: 'aiModelUltrasharpDesc',
+  },
+  {
+    id: 'remacri-4x', labelKey: 'aiModelRemacri', short: 'remacri',
+    extra: true, commercialOk: false, sizeMb: 33, descKey: 'aiModelRemacriDesc',
+  },
+  {
+    id: 'realesr-general-x4v3', labelKey: 'aiModelGeneralV3', short: 'generalv3',
+    extra: true, commercialOk: true, sizeMb: 2.4, descKey: 'aiModelGeneralV3Desc',
+  },
+];
 
 export const BUILTIN_PRESETS: Preset[] = [
   {
@@ -242,6 +274,13 @@ export const RESOLUTION_PRESETS = [
   { id: '720p', name: '720p (1280×720)', width: 1280, height: 720 },
   { id: '480p', name: '480p (854×480)', width: 854, height: 480 },
   { id: '360p', name: '360p (640×360)', width: 640, height: 360 },
+  // 縦長 (9:16 — Shorts / TikTok / Reels、4:5 — Instagram フィード)
+  { id: '4k-v', name: '縦 4K (2160×3840)', width: 2160, height: 3840 },
+  { id: '1440p-v', name: '縦 1440p (1440×2560)', width: 1440, height: 2560 },
+  { id: '1080p-v', name: '縦 1080p (1080×1920)', width: 1080, height: 1920 },
+  { id: '720p-v', name: '縦 720p (720×1280)', width: 720, height: 1280 },
+  { id: '480p-v', name: '縦 480p (480×854)', width: 480, height: 854 },
+  { id: '4x5', name: '縦 4:5 (1080×1350)', width: 1080, height: 1350 },
   { id: 'custom', name: 'カスタム', width: null, height: null },
 ] as const;
 

@@ -1,6 +1,6 @@
 import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 import type { MediaInfo, WaveformData } from '@/types/media';
-import type { FFmpegCommand, HWEncoder } from '@/types/ffmpeg';
+import type { FFmpegCommand, HWEncoder, AiUpscaleModel } from '@/types/ffmpeg';
 import type { VideoInfo, DownloadParams, DownloadProgress } from '@/types/ytdlp';
 import type { Job } from '@/types/job';
 import type { Preset, PresetList } from '@/types/preset';
@@ -31,7 +31,10 @@ function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
 // ── Setup ────────────────────────────────────────────────────────────────────
 export const checkBinaries = () => invoke<BinaryStatus>('check_binaries');
 
-export const downloadBinary = (tool: 'ffmpeg' | 'ytdlp' | 'realesrgan') =>
+/** `model:<id>` は追加 AI 超解像モデルを Real-ESRGAN の models/ に取得する */
+export type InstallableTool = 'ffmpeg' | 'ytdlp' | 'realesrgan' | 'deno' | `model:${AiUpscaleModel}`;
+
+export const downloadBinary = (tool: InstallableTool) =>
   invoke<string>('download_binary', { tool });
 
 export const checkUpdates = () => invoke<UpdateInfo>('check_updates');
@@ -71,7 +74,7 @@ export const executeFFmpeg = (command: FFmpegCommand) =>
 export interface AiUpscaleParams {
   inputPath: string;
   outputPath: string;
-  model: 'realesr-animevideov3' | 'realesrgan-x4plus' | 'realesrgan-x4plus-anime';
+  model: AiUpscaleModel;
   scale: 2 | 3 | 4;
   targetWidth?: number;
   targetHeight?: number;

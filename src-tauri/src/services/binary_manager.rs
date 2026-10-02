@@ -56,6 +56,17 @@ pub fn parse_ytdlp_version(output: &str) -> Option<String> {
     if v.is_empty() { None } else { Some(v) }
 }
 
+/// `deno --version` 出力からバージョン文字列を抽出する
+/// 例: "deno 2.5.0 (stable, release, x86_64-pc-windows-msvc)\nv8 ..." → "2.5.0"
+pub fn parse_deno_version(output: &str) -> Option<String> {
+    let first = output.lines().next()?;
+    let mut parts = first.split_whitespace();
+    if parts.next()? == "deno" {
+        return parts.next().map(str::to_string);
+    }
+    None
+}
+
 /// バイナリが存在する場合のみバージョンを返す
 pub async fn check_binary_version(
     path: &Path,
@@ -381,6 +392,59 @@ pub async fn install_realesrgan(app: &AppHandle) -> AppResult<String> {
     Ok("v0.2.0".to_string())
 }
 
+// ── 追加 AI 超解像モデル インストール ─────────────────────────────────────────
+
+/// platform::AI_MODEL_DOWNLOADS のモデルを Real-ESRGAN の models/ に取得する。
+/// 進捗は tool = "model:<id>" で通知（大きい .bin を先に取得して進捗表示を自然にする）。
+pub async fn install_ai_model(app: &AppHandle, id: &str) -> AppResult<String> {
+    let (_, base_url) = platform::AI_MODEL_DOWNLOADS
+        .iter()
+        .find(|(model_id, _)| *model_id == id)
+        .ok_or_else(|| AppError::InvalidInput { message: format!("Unknown AI model: {id}") })?;
+
+    let models_dir = platform::realesrgan_models_dir();
+    std::fs::create_dir_all(&models_dir)?;
+
+    let tool = format!("model:{id}");
+    for ext in ["bin", "param"] {
+        let dest = models_dir.join(format!("{id}.{ext}"));
+        download_file(&format!("{base_url}.{ext}"), &dest, app, &tool).await?;
+    }
+
+    Ok(id.to_string())
+}
+
+// ── Deno インストール ─────────────────────────────────────────────────────────
+
+/// yt-dlp の YouTube 抽出 (EJS) 用 JS ランタイムとして Deno をアプリ bin に入れる。
+/// platform::js_runtime() は bin を優先して探すので、配置後は自動で使われる。
+pub async fn install_deno(app: &AppHandle) -> AppResult<String> {
+    let bin_dir = config::binaries_dir();
+    std::fs::create_dir_all(&bin_dir)?;
+
+    let tmp_dir = config::temp_dir();
+    std::fs::create_dir_all(&tmp_dir)?;
+
+    let archive = tmp_dir.join("deno.zip");
+
+    download_file(platform::DENO_DOWNLOAD_URL, &archive, app, "deno").await?;
+
+    let entries: &[(&str, &str)] = &[(platform::DENO_BIN, platform::DENO_BIN)];
+    let extracted = extract_binaries_from_zip(&archive, &bin_dir, entries)?;
+    let _ = std::fs::remove_file(&archive);
+
+    let bin_path = extracted.into_iter().next().ok_or_else(|| AppError::DownloadFailed {
+        message: format!("'{}' not found inside Deno archive", platform::DENO_BIN),
+    })?;
+    platform::set_executable(&bin_path)?;
+
+    let version = check_binary_version(&bin_path, &["--version"], parse_deno_version)
+        .await
+        .unwrap_or_else(|| "unknown".to_string());
+
+    Ok(version)
+}
+
 // ── 全バイナリステータス確認 ──────────────────────────────────────────────────
 
 pub async fn check_all_binaries() -> BinaryStatus {
@@ -406,6 +470,8 @@ pub async fn check_all_binaries() -> BinaryStatus {
     // Real-ESRGAN はバージョン取得APIを持たないので、バイナリ存在＋modelsディレクトリ存在で判定
     let realesrgan_installed = realesrgan_path.exists() && realesrgan_models_dir.exists();
 
+    let js_runtime = platform::js_runtime();
+
     BinaryStatus {
         ffmpeg_installed: ffmpeg_ver.is_some(),
         ffmpeg_version:   ffmpeg_ver,
@@ -428,6 +494,13 @@ pub async fn check_all_binaries() -> BinaryStatus {
         } else {
             None
         },
+        js_runtime_path: js_runtime.as_ref().map(|(_, p)| p.to_string_lossy().to_string()),
+        js_runtime: js_runtime.map(|(name, _)| name.to_string()),
+        ai_models: platform::AI_MODEL_DOWNLOADS
+            .iter()
+            .filter(|(id, _)| platform::ai_model_installed(id))
+            .map(|(id, _)| id.to_string())
+            .collect(),
     }
 }
 

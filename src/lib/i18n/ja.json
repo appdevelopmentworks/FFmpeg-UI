@@ -4,7 +4,7 @@
     "settings": "設定"
   },
   "tabs": {
-    "youtube": "YouTube",
+    "youtube": "動画DL",
     "convert": "変換",
     "trim": "カット",
     "merge": "結合",
@@ -15,7 +15,7 @@
     "command": "コマンド"
   },
   "youtube": {
-    "urlPlaceholder": "YouTube URL を入力またはペースト",
+    "urlPlaceholder": "YouTube / X の URL を入力またはペースト",
     "fetch": "取得",
     "format": "フォーマット",
     "quality": "品質",
@@ -74,10 +74,19 @@
     "aiModelGeneral": "汎用 (realesrgan-x4plus)",
     "aiModelAnime": "アニメ専用 (realesrgan-x4plus-anime)",
     "aiModelVideo": "高速 (realesr-animevideov3)",
+    "aiModelUltrasharp": "超精細 (4x-UltraSharp)",
+    "aiModelUltrasharpDesc": "細部と質感を最も強く再現。圧縮で劣化した素材にも強い",
+    "aiModelRemacri": "精細・実写 (Remacri)",
+    "aiModelRemacriDesc": "平坦化が少なく写真・実写のディテールを残す",
+    "aiModelGeneralV3": "実写汎用・軽量 (realesr-general-x4v3)",
+    "aiModelGeneralV3Desc": "Real-ESRGAN 公式の実写向け軽量モデル。高速で自然な仕上がり",
+    "aiModelNonCommercial": "[非商用]",
+    "aiModelNotInstalled": "(未ダウンロード)",
+    "aiModelMoreHint": "設定 → ツール から追加の高精細モデルをダウンロードできます",
     "aiScale": "倍率",
     "aiWarning": "AI超解像は処理に時間がかかります（GPU推奨）",
     "aiNotInstalled": "AI超解像を使うには設定画面からモジュールをダウンロードしてください",
-    "aiX4plusNote": "x4plus 系モデルは常に 4x で処理 → 目標解像度に Lanczos で縮小されます（倍率指定はファイル名にのみ反映）"
+    "aiX4plusNote": "このモデルは常に 4x で処理 → 目標解像度に Lanczos で縮小されます（倍率指定はファイル名にのみ反映）"
   },
   "trim": {
     "start": "開始",
@@ -291,7 +300,17 @@
     "realesrganDescription": "Real-ESRGAN による真の高画質化を有効化（約80MB）",
     "realesrganEnable": "AI超解像を有効にする",
     "realesrganInstalled": "インストール済み",
-    "realesrganOptionalNote": "未インストールでも他の機能は利用できます"
+    "realesrganOptionalNote": "未インストールでも他の機能は利用できます",
+    "aiModelsTitle": "追加モデル（高精細・各 4x 専用）",
+    "aiModelDownload": "ダウンロード ({size}MB)",
+    "licenseCommercialOk": "商用可",
+    "licenseNonCommercial": "非商用のみ",
+    "aiModelsLicenseNote": "「非商用のみ」のモデルは CC BY-NC-SA 4.0 ライセンスです。個人・非商用の用途に限り使用できます。商用利用する場合は「商用可」のモデルを選んでください。モデルは Upscayl が公開している ncnn 変換版を取得します",
+    "denoTitle": "JavaScript ランタイム（YouTube用）",
+    "denoDescription": "yt-dlp が YouTube の全フォーマットを取得するために必要（Deno 約40MB）",
+    "denoInstall": "Deno をインストール",
+    "denoDetected": "{runtime} を使用中",
+    "denoMissingNote": "未インストールの場合、YouTube の一部フォーマットが取得できないことがあります"
   },
   "common": {
     "outputDir": "出力先",
