@@ -291,8 +291,27 @@ pub async fn run_ai_upscale(
             "-crf".into(), crf,
             "-pix_fmt".into(), "yuv420p".into(),
             "-c:a".into(), "copy".into(),
+            // 元動画のメタデータ (撮影日時・タイトル等) を引き継ぐ
+            "-map_metadata".into(), "1".into(),
             "-shortest".into(),
         ];
+
+        // ソフトウェアエンコーダは slow で圧縮効率を上げる
+        // (NVENC/QSV/AMF は preset の体系が異なるため付けない)
+        if matches!(params.video_codec.as_str(), "libx264" | "libx265") {
+            args.push("-preset".into());
+            args.push("slow".into());
+        }
+
+        // MP4/MOV は moov を先頭に置き、Web 再生ですぐ再生開始できるようにする
+        let ext = std::path::Path::new(&params.output_path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase());
+        if matches!(ext.as_deref(), Some("mp4" | "mov" | "m4v")) {
+            args.push("-movflags".into());
+            args.push("+faststart".into());
+        }
 
         // 目標解像度が指定されていればLanczosでフィット（縦横比が違えば中央切り抜き）
         if let (Some(w), Some(h)) = (params.target_width, params.target_height) {

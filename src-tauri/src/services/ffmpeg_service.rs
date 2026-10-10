@@ -624,8 +624,9 @@ pub async fn extract_streams(
 /// 指定解像度へのリサイズフィルタ。縦横比が異なる場合は歪ませず、
 /// 画面いっぱいに拡大してはみ出た部分を中央で切り抜く (横長 → 縦長など)。
 /// 拡大時の端数丸めで SAR が 10240:10239 のようにずれるため setsar=1 で正規化する。
+/// Lanczos は accurate_rnd (丸め誤差低減) + full_chroma_int (色差もフル解像度で補間) で高精度化。
 pub fn scale_crop_filter(width: u32, height: u32, lanczos: bool) -> String {
-    let flags = if lanczos { ":flags=lanczos" } else { "" };
+    let flags = if lanczos { ":flags=lanczos+accurate_rnd+full_chroma_int" } else { "" };
     format!(
         "scale={width}:{height}:force_original_aspect_ratio=increase{flags},crop={width}:{height},setsar=1"
     )

@@ -56,7 +56,7 @@ export function buildArgs(cmd: FFmpegCommand): string[] {
     if (alg !== 'ai') {
       // Rust 側 scale_crop_filter と同じ: 縦横比が違えば拡大して中央を切り抜く
       const { width: w, height: h } = cmd.resolution;
-      const flags = alg === 'lanczos' ? ':flags=lanczos' : '';
+      const flags = alg === 'lanczos' ? ':flags=lanczos+accurate_rnd+full_chroma_int' : '';
       vfParts.push(`scale=${w}:${h}:force_original_aspect_ratio=increase${flags},crop=${w}:${h},setsar=1`);
     }
   }
