@@ -15,7 +15,7 @@
     "command": "Command"
   },
   "youtube": {
-    "urlPlaceholder": "Enter or paste a YouTube / X URL",
+    "urlPlaceholder": "Enter or paste a YouTube / X / TikTok URL",
     "fetch": "Fetch",
     "format": "Format",
     "quality": "Quality",

@@ -84,7 +84,10 @@ function isSupportedVideoUrl(url: string): boolean {
     url.includes('youtube.com/watch') ||
     url.includes('youtube.com/shorts/') ||
     url.includes('youtu.be/') ||
-    /(?:^|\/\/|\.)(?:x|twitter)\.com\/[^/]+\/status\/\d+/.test(url)
+    /(?:^|\/\/|\.)(?:x|twitter)\.com\/[^/]+\/status\/\d+/.test(url) ||
+    // TikTok: 通常URL (@user/video/ID)、短縮URL (vm./vt.tiktok.com/xxx, tiktok.com/t/xxx)
+    /(?:^|\/\/|\.)tiktok\.com\/(?:@[^/]+\/video\/\d+|t\/\w+)/.test(url) ||
+    /\/\/(?:vm|vt)\.tiktok\.com\/\w+/.test(url)
   );
 }
 
@@ -97,13 +100,16 @@ function formatHeight(f: DownloadFormat): number {
 type ModeFilter = 'best' | 'videoAndAudio' | 'videoOnly' | 'audioOnly';
 
 function filterFormats(formats: DownloadFormat[], mode: ModeFilter): DownloadFormat[] {
-  return formats
-    .filter((f) => {
-      if (mode === 'best') return f.hasVideo && !f.hasAudio; // 映像のみ（音声は自動マージ）
-      if (mode === 'videoAndAudio') return f.hasVideo && f.hasAudio;
-      if (mode === 'videoOnly') return f.hasVideo && !f.hasAudio;
-      return f.hasAudio && !f.hasVideo;
-    })
+  const videoOnly = formats.filter((f) => f.hasVideo && !f.hasAudio);
+  const combined = formats.filter((f) => f.hasVideo && f.hasAudio);
+  const list =
+    mode === 'best'
+      // 映像のみ（音声は自動マージ）。TikTok など映像単体が無いサイトは映像+音声で代替
+      ? (videoOnly.length > 0 ? videoOnly : combined)
+      : mode === 'videoAndAudio' ? combined
+      : mode === 'videoOnly' ? videoOnly
+      : formats.filter((f) => f.hasAudio && !f.hasVideo);
+  return list
     .sort((a, b) => {
       const sizeA = a.filesize ?? a.filesizeApprox ?? 0;
       const sizeB = b.filesize ?? b.filesizeApprox ?? 0;
@@ -259,8 +265,10 @@ export function YouTubeTab() {
   const handleDownload = useCallback(async () => {
     if (!videoInfo || !selectedFormatId) return;
     const dir = outputDir || defaultOutputDir;
-    // ベスト画質モード: 映像ID+bestaudio で自動マージ
-    const formatId = mode === 'best' ? `${selectedFormatId}+bestaudio` : selectedFormatId;
+    // ベスト画質モード: 映像ID+bestaudio で自動マージ（映像+音声一体のフォーマットはそのまま）
+    const selected = videoInfo.formats.find((f) => f.formatId === selectedFormatId);
+    const formatId =
+      mode === 'best' && !selected?.hasAudio ? `${selectedFormatId}+bestaudio` : selectedFormatId;
     const needsMerge = mode === 'best' || mode === 'videoAndAudio';
     await startDownload({
       url: inputUrl,

@@ -15,7 +15,7 @@
     "command": "コマンド"
   },
   "youtube": {
-    "urlPlaceholder": "YouTube / X の URL を入力またはペースト",
+    "urlPlaceholder": "YouTube / X / TikTok の URL を入力またはペースト",
     "fetch": "取得",
     "format": "フォーマット",
     "quality": "品質",

@@ -372,6 +372,10 @@ fn classify_ytdlp_error(stderr: &str) -> String {
     if stderr.contains("requires authentication") || stderr.contains("NSFW tweet") {
         return "ログインが必要なポストです（センシティブ・非公開ポストには未対応）".to_string();
     }
+    // TikTok
+    if stderr.contains("Your IP address is blocked from accessing this post") {
+        return "投稿者の設定により、この地域からはアクセスできない投稿です".to_string();
+    }
     // YouTube 側の仕様変更で古い yt-dlp の取得 URL が拒否されるケースが大半
     if stderr.contains("HTTP Error 403") {
         return "YouTube にダウンロードを拒否されました (HTTP 403)。設定 → ツール から yt-dlp を最新版に更新してください".to_string();
